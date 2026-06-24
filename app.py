@@ -119,7 +119,7 @@ if "w2_count" not in st.session_state:
 if "match_count" not in st.session_state:
     st.session_state.match_count = 0
 
-# --- Interface Design Custom Styling Injector ---
+# --- Advanced Adaptive SaaS Style Injector ---
 st.set_page_config(
     page_title="Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
 )
@@ -129,92 +129,125 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
-    /* Global Font Settings tied directly to system themes */
+    /* Font Polish Across Global Container */
     html, body, [data-testid="stAppViewContainer"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
     
-    /* Modern Adaptive Gradient Header */
+    /* Dynamic Gradient Heading Style */
     .dashboard-title {
-        background: linear-gradient(135deg, #00D2B4 0%, #0066EE 100%);
+        background: linear-gradient(135deg, #00C9A7 0%, #0052D4 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800 !important;
-        font-size: 2.5rem !important;
+        font-size: 2.6rem !important;
         letter-spacing: -0.5px;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
     
-    /* Flexible Subheading based on selected theme colors */
     .dashboard-subheading {
         color: var(--text-color) !important;
         opacity: 0.8;
         font-size: 1.05rem !important;
-        font-weight: 400 !important;
+        font-weight: 500 !important;
         margin-bottom: 4px;
+        line-height: 1.4;
     }
     
     .brand-attribution {
-        color: #00D2B4 !important;
+        color: #00C9A7 !important;
         font-weight: 700 !important;
         font-size: 0.85rem !important;
         letter-spacing: 1.5px;
+        text-transform: uppercase;
         margin-bottom: 25px;
     }
     
-    /* Universal Adaptive Metric Framework Boxes */
+    /* Modernized SaaS Cards for Metrics Block */
     div[data-testid="stMetric"] {
         background-color: var(--secondary-background-color) !important;
-        border: 1px solid rgba(0, 210, 180, 0.25) !important;
-        border-radius: 12px !important;
-        padding: 15px 20px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    div[data-testid="stMetricValue"] {
-        color: #0066EE !important;
-        font-weight: 700 !important;
-        font-size: 2.5rem !important;
+        border: 1px solid rgba(0, 201, 167, 0.2) !important;
+        border-radius: 14px !important;
+        padding: 20px 24px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
-    [data-theme="dark"] div[data-testid="stMetricValue"] {
-        color: #00D2B4 !important;
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        border-color: rgba(0, 201, 167, 0.4) !important;
+    }
+    
+    /* Unified Numeric Metrics Typography & High Contrast Styling */
+    div[data-testid="stMetricValue"] {
+        color: #0052D4 !important;
+        font-weight: 800 !important;
+        font-size: 2.8rem !important;
+        letter-spacing: -1px;
+    }
+    
+    /* Specific adjustment to prevent dark mode visibility washing out */
+    @media (prefers-color-scheme: dark) {
+        div[data-testid="stMetricValue"] {
+            color: #00C9A7 !important;
+        }
     }
     
     div[data-testid="stMetricLabel"] {
         color: var(--text-color) !important;
         opacity: 0.7;
         font-size: 0.85rem !important;
+        font-weight: 600 !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
     /* High Visibility Primary Run Audit Action Button Setup */
     button[aria-label="⚡ RUN MATCHING AUDIT"] {
-        background: linear-gradient(135deg, #00D2B4 0%, #0066EE 100%) !important;
+        background: linear-gradient(135deg, #00C9A7 0%, #0052D4 100%) !important;
         color: #FFFFFF !important;
         font-weight: 700 !important;
         border: none !important;
-        border-radius: 8px !important;
-        padding: 10px 20px !important;
-        box-shadow: 0 4px 15px rgba(0, 102, 238, 0.2) !important;
-        transition: all 0.2s ease !important;
+        border-radius: 10px !important;
+        padding: 14px 28px !important;
+        box-shadow: 0 10px 20px -10px rgba(0, 82, 212, 0.5) !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     button[aria-label="⚡ RUN MATCHING AUDIT"]:hover {
-        box-shadow: 0 6px 20px rgba(0, 102, 238, 0.35) !important;
+        box-shadow: 0 20px 25px -10px rgba(0, 82, 212, 0.6) !important;
         transform: translateY(-1px);
+        opacity: 0.95;
     }
     
-    /* Universal Theme Secondary Buttons Configuration */
-    div.stDownloadButton > button {
-        background-color: var(--secondary-background-color) !important;
+    /* Secondary Download & Interface Action Buttons Configuration */
+    div.stDownloadButton > button, button[aria-label="🔄 START AUDIT FOR NEW SITE"] {
+        background-color: var(--background-color) !important;
         color: var(--text-color) !important;
-        border: 1px solid rgba(128, 128, 128, 0.3) !important;
-        border-radius: 8px !important;
+        border: 1px solid rgba(128, 128, 128, 0.25) !important;
+        border-radius: 10px !important;
         font-weight: 600 !important;
+        padding: 10px 20px !important;
+        transition: all 0.2s ease !important;
     }
-    div.stDownloadButton > button:hover {
-        border-color: #00D2B4 !important;
-        color: #00D2B4 !important;
+    div.stDownloadButton > button:hover, button[aria-label="🔄 START AUDIT FOR NEW SITE"]:hover {
+        border-color: #00C9A7 !important;
+        color: #00C9A7 !important;
+        background-color: var(--secondary-background-color) !important;
+    }
+    
+    /* Clean inputs design layout card block styles */
+    .stTextInput > div {
+        border-radius: 10px !important;
+        border: 1px solid rgba(128, 128, 128, 0.2) !important;
+        background-color: var(--secondary-background-color) !important;
+    }
+    
+    /* Elegant Expandable Info Boxes */
+    div[data-testid="stExpander"] {
+        background-color: var(--secondary-background-color) !important;
+        border: 1px solid rgba(128, 128, 128, 0.15) !important;
+        border-radius: 10px !important;
     }
     </style>
 """,
