@@ -310,7 +310,6 @@ if action_btn:
     if not sitemap_1_input.strip() or not sitemap_2_input.strip():
         st.error("Execution parameters incomplete.")
     else:
-        # Load backend configurations if supplied
         live_backup_df = (
             pd.read_csv(live_csv_file) if live_csv_file is not None else None
         )
@@ -341,7 +340,6 @@ if action_btn:
             for i, (slug, url) in enumerate(w1_slug_to_url.items()):
                 status_text.markdown(f"`Scanning Live Site Engine:` **/{slug}**")
 
-                # Core Lookup Check: Attempt extraction from Live CSV file mapping first
                 fallback_found = False
                 if live_backup_df is not None and "slug" in live_backup_df.columns:
                     match_row = live_backup_df[live_backup_df["slug"] == slug]
@@ -350,15 +348,15 @@ if action_btn:
                         w1_seo_data[slug] = {
                             "title": row.get("seo_title", ""),
                             "meta_description": row.get("seo_description", ""),
-                            "canonical": row.get("advanced_canonical", ""),
+                            "canonical": row.get("canonical_url", ""),
                             "keywords": row.get("focus_keyword", ""),
                             "schema_json_ld": row.get("schema_data", ""),
                             "fb_title": row.get("social_facebook_title", ""),
                             "fb_desc": row.get("social_facebook_description", ""),
-                            "fb_image": row.get("social_facebook_image", ""),
+                            "fb_image": row.get("social_facebook_thumbnail", ""),
                             "tw_title": row.get("social_twitter_title", ""),
                             "tw_desc": row.get("social_twitter_description", ""),
-                            "tw_image": row.get("social_twitter_image", ""),
+                            "tw_image": row.get("social_twitter_thumbnail", ""),
                         }
                         fallback_found = True
 
@@ -386,13 +384,11 @@ if action_btn:
                 )
 
                 wp_page_id = ""
-                # Core Lookup Check: Extract exact ID from Beta CSV file upload if available
                 if beta_backup_df is not None and "slug" in beta_backup_df.columns:
                     match_beta = beta_backup_df[beta_backup_df["slug"] == w2_slug]
                     if not match_beta.empty:
                         wp_page_id = str(match_beta.iloc[0].get("id", ""))
 
-                # API / Scraper validation fallback
                 if not wp_page_id:
                     wp_page_id = extract_wordpress_page_id(w2_url)
 
@@ -502,6 +498,7 @@ if st.session_state.audit_results is not None:
             st.session_state.audit_results["Match Status"] == "MATCHED"
         ].copy()
 
+        # Fixed, locked layout reflecting exact RankMath configuration schemas
         rankmath_complete_df = pd.DataFrame(
             {
                 "id": matched_df["Beta WP Page ID"],
@@ -512,15 +509,16 @@ if st.session_state.audit_results is not None:
                 "is_pillar_content": 0,
                 "focus_keyword": matched_df["Meta Tags / Keywords"],
                 "seo_score": 80,
-                "robots": "",
-                "advanced_canonical": matched_df["Canonical Tag (from Live)"],
+                "robots": "index, follow",
+                "advanced_robots": "",
+                "canonical_url": matched_df["Canonical Tag (from Live)"],
                 "primary_term": "",
                 "schema_data": matched_df["Schema JSON-LD"],
+                "social_facebook_thumbnail": matched_df["fb_image"],
                 "social_facebook_title": matched_df["fb_title"],
                 "social_facebook_description": matched_df["fb_desc"],
-                "social_facebook_image": matched_df["fb_image"],
+                "social_twitter_thumbnail": matched_df["tw_image"],
                 "social_twitter_title": matched_df["tw_title"],
-                "social_twitter_image": matched_df["tw_image"],
                 "social_twitter_description": matched_df["tw_desc"],
             }
         )
