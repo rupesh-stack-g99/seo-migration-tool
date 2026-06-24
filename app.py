@@ -172,7 +172,7 @@ with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline", expanded=
 
 st.write("")
 
-# Target Entry Panel - Now Empty by Default with Faded Placeholders
+# Target Entry Panel - Updated to "Beta Site" with Faded Placeholders
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
@@ -184,7 +184,7 @@ with col2:
     sitemap_2_input = st.text_input(
         "Enter Beta Site (Sitemap XML URL)",
         value="",
-        placeholder="e.g., https://staging.example.com/sitemap_index.xml",
+        placeholder="e.g., https://beta.example.com/sitemap_index.xml",
     )
 
 st.write("")
@@ -206,7 +206,7 @@ if action_btn:
     # 2. Duplicate URL protection validation
     elif sitemap_1_input.strip() == sitemap_2_input.strip():
         st.error(
-            "🔄 Input Conflict: Both fields contain the exact same URL. Please enter your old live sitemap on the left and your new staging sitemap on the right."
+            "🔄 Input Conflict: Both fields contain the exact same URL. Please enter your old live sitemap on the left and your beta sitemap on the right."
         )
     else:
         with st.spinner("Extracting deep index maps recursively..."):
@@ -297,7 +297,7 @@ if st.session_state.audit_results is not None:
     with m1:
         st.metric(label="Live Site Total URLs", value=st.session_state.w1_count)
     with m2:
-        st.metric(label="Redesign Site Total URLs", value=st.session_state.w2_count)
+        st.metric(label="Beta Site Total URLs", value=st.session_state.w2_count)
     with m3:
         st.metric(label="Matched Intersections", value=st.session_state.match_count)
 
@@ -312,7 +312,7 @@ if st.session_state.audit_results is not None:
 
     st.write("")
 
-    # Perfectly Aligned Bottom Navigation/Action Bar
+    # Perfectly Aligned Bottom Action Bar
     btn_col1, btn_col2 = st.columns(2)
 
     with btn_col1:
