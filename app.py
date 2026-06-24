@@ -172,7 +172,7 @@ with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline", expanded=
 
 st.write("")
 
-# Target Entry Panel - Updated to "Beta Site" with Faded Placeholders
+# Target Entry Panel
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
@@ -198,12 +198,10 @@ with center_btn_col:
 
 # Execution Logic Processing Window
 if action_btn:
-    # 1. Check for empty fields
     if not sitemap_1_input.strip() or not sitemap_2_input.strip():
         st.error(
             "Execution parameters incomplete. Please fill out both sitemap address boxes to proceed."
         )
-    # 2. Duplicate URL protection validation
     elif sitemap_1_input.strip() == sitemap_2_input.strip():
         st.error(
             "🔄 Input Conflict: Both fields contain the exact same URL. Please enter your old live sitemap on the left and your beta sitemap on the right."
@@ -303,7 +301,6 @@ if st.session_state.audit_results is not None:
 
     st.write("")
 
-    # High-Definition Unified Grid Layout Viewport
     st.dataframe(
         st.session_state.audit_results,
         use_container_width=True,
@@ -312,15 +309,15 @@ if st.session_state.audit_results is not None:
 
     st.write("")
 
-    # Perfectly Aligned Bottom Action Bar
-    btn_col1, btn_col2 = st.columns(2)
+    # Action Row Options Grid
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
         csv_data = st.session_state.audit_results.to_csv(
             index=False, encoding="utf-8-sig"
         )
         st.download_button(
-            label="📥 EXPORT DATA SHEET CSV",
+            label="📥 EXPORT MASTER DATA SHEET",
             data=csv_data,
             file_name="seo_migration_matrix.csv",
             mime="text/csv",
@@ -328,10 +325,31 @@ if st.session_state.audit_results is not None:
         )
 
     with btn_col2:
-        # Clear all states and reset text inputs to blank values upon clicking
+        # Generate the formatted RankMath file targeting matched beta site paths
+        matched_df = st.session_state.audit_results[
+            st.session_state.audit_results["Match Status"] == "MATCHED"
+        ].copy()
+        rankmath_df = pd.DataFrame(
+            {
+                "url": matched_df["Beta Site Raw URL"],
+                "title": matched_df["Meta Title (from Live)"],
+                "description": matched_df["Meta Description (from Live)"],
+            }
+        )
+        rankmath_csv = rankmath_df.to_csv(index=False, encoding="utf-8-sig")
+        st.download_button(
+            label="📥 EXPORT RANKMATH IMPORT CSV",
+            data=rankmath_csv,
+            file_name="rankmath_seo_import.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    with btn_col3:
         if st.button("🔄 START AUDIT FOR NEW SITE", use_container_width=True):
             st.session_state.audit_results = None
             st.session_state.w1_count = 0
             st.session_state.w2_count = 0
             st.session_state.match_count = 0
+            st.clear_cache()
             st.rerun()
