@@ -182,7 +182,7 @@ with col1:
     )
 with col2:
     sitemap_2_input = st.text_input(
-        "Enter New Redesign Site (Sitemap XML URL)",
+        "Enter Beta Site (Sitemap XML URL)",
         value="",
         placeholder="e.g., https://staging.example.com/sitemap_index.xml",
     )
