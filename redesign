@@ -1,0 +1,183 @@
+import json
+import re
+from urllib.parse import urljoin, urlparse
+import xml.etree.ElementTree as ET
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
+
+def get_slug(url):
+    """Extracts the clean path/slug from a URL for matching."""
+    path = urlparse(url).path
+    return path.strip("/").lower()
+
+
+def discover_urls_from_sitemap(domain_url):
+    """Automatically finds and extracts all URLs from a domain's sitemap."""
+    print(f"Discovering URLs for: {domain_url}")
+    urls = set()
+
+    # Try standard sitemap locations
+    sitemap_locations = [
+        "sitemap.xml",
+        "sitemap_index.xml",
+        "wp-sitemap.xml",  # WordPress default
+    ]
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+
+    for loc in sitemap_locations:
+        sitemap_url = urljoin(domain_url, loc)
+        try:
+            response = requests.get(sitemap_url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                # Parse XML
+                root = ET.fromstring(response.content)
+                # Handle namespaces gracefully
+                namespaces = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+                # If it's a sitemap index (links to other sitemaps)
+                sub_sitemaps = root.findall(".//ns:sitemap/ns:loc", namespaces)
+                if sub_sitemaps:
+                    for sub in sub_sitemaps:
+                        sub_res = requests.get(
+                            sub.text, headers=headers, timeout=10
+                        )
+                        if sub_res.status_code == 200:
+                            sub_root = ET.fromstring(sub_res.content)
+                            for loc_tag in sub_root.findall(
+                                ".//ns:url/ns:loc", namespaces
+                            ):
+                                urls.add(loc_tag.text.strip())
+                else:
+                    # Direct single sitemap
+                    for loc_tag in root.findall(".//ns:url/ns:loc", namespaces):
+                        urls.add(loc_tag.text.strip())
+
+                if urls:
+                    print(f"-> Found {len(urls)} URLs in {sitemap_url}")
+                    return list(urls)
+        except Exception:
+            continue
+
+    # Fallback if no sitemap is found: just process the homepage
+    print(f"Warning: Could not automatically read sitemap for {domain_url}.")
+    return [domain_url]
+
+
+def scrape_website_1_seo(url):
+    """Scrapes all SEO data from a single URL on Website 1."""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        title = soup.title.string.strip() if soup.title else ""
+
+        desc_tag = soup.find("meta", attrs={"name": "description"})
+        meta_desc = desc_tag["content"].strip() if desc_tag else ""
+
+        canonical_tag = soup.find("link", rel="canonical")
+        canonical = canonical_tag["href"].strip() if canonical_tag else ""
+
+        og_tags = {}
+        for tag in soup.find_all("meta", property=re.compile(r"^og:")):
+            og_tags[tag["property"]] = tag.get("content", "").strip()
+
+        schemas = []
+        schema_tags = soup.find_all("script", type="application/ld+json")
+        for tag in schema_tags:
+            try:
+                if tag.string:
+                    schemas.append(json.loads(tag.string.strip()))
+            except Exception:
+                schemas.append(tag.string.strip() if tag.string else "")
+
+        print(f"Successfully scraped: {url}")
+        return {
+            "slug": get_slug(url),
+            "w1_url": url,
+            "title": title,
+            "meta_description": meta_desc,
+            "canonical": canonical,
+            "og_tags": json.dumps(og_tags, ensure_ascii=False),
+            "schema_json_ld": json.dumps(schemas, ensure_ascii=False),
+        }
+    except Exception as e:
+        print(f"Error scraping {url}: {e}")
+        return None
+
+
+def generate_migration_sheet(
+    domain_1, domain_2, output_file="seo_migration_mapping.csv"
+):
+    # Phase 1: Auto-discover URLs
+    w1_urls = discover_urls_from_sitemap(domain_1)
+    w2_urls = discover_urls_from_sitemap(domain_2)
+
+    print("\n--- Phase 2: Scraping SEO Data from Website 1 ---")
+    w1_data_store = {}
+    for url in w1_urls:
+        data = scrape_website_1_seo(url)
+        if data:
+            w1_data_store[data["slug"]] = data
+
+    print("\n--- Phase 3: Generating Slug-Matched Mapping Sheet ---")
+    final_rows = []
+
+    for w2_url in w2_urls:
+        slug = get_slug(w2_url)
+
+        if slug in w1_data_store:
+            w1_info = w1_data_store[slug]
+            final_rows.append(
+                {
+                    "Match Status": "MATCHED",
+                    "Slug": slug,
+                    "Website 2 New URL": w2_url,
+                    "Website 1 Old URL": w1_info["w1_url"],
+                    "Meta Title": w1_info["title"],
+                    "Meta Description": w1_info["meta_description"],
+                    "Canonical (Old)": w1_info["canonical"],
+                    "Open Graph Tags": w1_info["og_tags"],
+                    "Schema JSON-LD": w1_info["schema_json_ld"],
+                }
+            )
+        else:
+            final_rows.append(
+                {
+                    "Match Status": "NO MATCH FOUND IN SITE 1",
+                    "Slug": slug,
+                    "Website 2 New URL": w2_url,
+                    "Website 1 Old URL": "N/A",
+                    "Meta Title": "",
+                    "Meta Description": "",
+                    "Canonical (Old)": "",
+                    "Open Graph Tags": "",
+                    "Schema JSON-LD": "",
+                }
+            )
+
+    # Export map to CSV
+    df = pd.DataFrame(final_rows)
+    df.to_csv(output_file, index=False, encoding="utf-8-sig")
+    print(
+        f"\n🎉 Done! The layout spreadsheet has been generated as: '{output_file}'"
+    )
+
+
+# --- RUN USING JUST DOMAIN URLS ---
+if __name__ == "__main__":
+    website_1_domain = "https://example-website1.com"
+    website_2_domain = "https://example-website2.com"
+
+    generate_migration_sheet(website_1_domain, website_2_domain)
