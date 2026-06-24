@@ -48,7 +48,6 @@ def extract_urls_from_sitemap_url(sitemap_url):
             for sitemap_node in sitemaps:
                 if sitemap_node.text:
                     sub_url = sitemap_node.text.strip()
-                    # Recursively go deeper into the sub-sitemaps
                     sub_urls = extract_urls_from_sitemap_url(sub_url)
                     urls.update(sub_urls)
 
@@ -104,6 +103,16 @@ def scrape_current_live_site_seo(url):
         return None
 
 
+# --- Initialize Session States ---
+if "audit_results" not in st.session_state:
+    st.session_state.audit_results = None
+if "w1_count" not in st.session_state:
+    st.session_state.w1_count = 0
+if "w2_count" not in st.session_state:
+    st.session_state.w2_count = 0
+if "match_count" not in st.session_state:
+    st.session_state.match_count = 0
+
 # --- Streamlit Layout ---
 st.set_page_config(
     page_title="SEO Sitemap Migration Matrix", page_icon="🗺️", layout="wide"
@@ -114,6 +123,7 @@ st.write(
     "Enter the exact sitemap XML addresses below. The engine will extract all nested links, pull the slugs, map them, and gather Current Live Site SEO data."
 )
 
+# Render input form fields
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
@@ -126,6 +136,7 @@ with col2:
         "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
     )
 
+# Primary audit trigger execution
 if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
     if not sitemap_1_input or not sitemap_2_input:
         st.error("Please fill in both sitemap URL inputs.")
@@ -134,24 +145,22 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
-        # Show exactly how many URLs were uncovered from the sitemaps
-        st.info(
-            f"📋 Discovered {len(w1_urls)} URLs from Current Live Site and {len(w2_urls)} URLs from Beta Site."
-        )
-
         if len(w1_urls) == 0 or len(w2_urls) == 0:
             st.error(
                 "Could not extract any URLs. Please verify that both sitemap inputs are live XML addresses."
             )
         else:
-            # Map Current Live Site URLs using their clean path slug as the lookup key
+            st.session_state.w1_count = len(w1_urls)
+            st.session_state.w2_count = len(w2_urls)
+
+            # Map Current Live Site URLs using their clean path slug
             w1_slug_to_url = {}
             for url in w1_urls:
                 slug = get_slug_from_url(url)
                 if slug:
                     w1_slug_to_url[slug] = url
 
-            # Scrape Current Live Site pages for real-time SEO validation
+            # Scrape Current Live Site pages
             w1_seo_data = {}
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -169,6 +178,8 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
 
             # Build matrix rows driven by Beta Site's structure
             final_rows = []
+            matched_counter = 0
+
             for idx, w2_url in enumerate(w2_urls, start=1):
                 w2_slug = get_slug_from_url(w2_url)
                 display_w2_slug = "/" if w2_slug == "homepage" else f"/{w2_slug}"
@@ -177,8 +188,8 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
                     w1_url = w1_slug_to_url[w2_slug]
                     display_w1_slug = display_w2_slug
                     match_status = "MATCHED"
+                    matched_counter += 1
 
-                    # Collect scraped data profile
                     seo = w1_seo_data.get(w2_slug, None)
                     meta_title = seo["title"] if seo else ""
                     meta_desc = seo["meta_description"] if seo else ""
@@ -211,17 +222,53 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
                     }
                 )
 
-            df = pd.DataFrame(final_rows)
+            st.session_state.match_count = matched_counter
+            st.session_state.audit_results = pd.DataFrame(final_rows)
+
             progress_bar.empty()
             status_text.empty()
-
             st.success("🎉 Migration Mapping Complete!")
-            st.dataframe(df, use_container_width=True)
 
-            csv_data = df.to_csv(index=False, encoding="utf-8-sig")
-            st.download_button(
-                label="📥 Download Structured CSV Matrix",
-                data=csv_data,
-                file_name="seo_migration_matrix.csv",
-                mime="text/csv",
-            )
+# --- Render Results Section ---
+if st.session_state.audit_results is not None:
+    st.write("---")
+    st.subheader("📊 Audit Summary Counters")
+
+    # Display clean counter layout blocks
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        label="Total Current Live Site URLs Found",
+        value=st.session_state.w1_count,
+    )
+    m2.metric(
+        label="Total Beta Site URLs Found", value=st.session_state.w2_count
+    )
+    m3.metric(
+        label="Successfully Matched Slugs", value=st.session_state.match_count
+    )
+
+    # Render persistent DataFrame display window
+    st.dataframe(st.session_state.audit_results, use_container_width=True)
+
+    # Persistent download action component
+    csv_data = st.session_state.audit_results.to_csv(
+        index=False, encoding="utf-8-sig"
+    )
+
+    col_dl, col_reset = st.columns([1, 4])
+    with col_dl:
+        st.download_button(
+            label="📥 Download Structured CSV Matrix",
+            data=csv_data,
+            file_name="seo_migration_matrix.csv",
+            mime="text/csv",
+        )
+
+    # Rerun / Reset option component layout
+    with col_reset:
+        if st.button("🔄 Rerun New Audit / Reset Everything"):
+            st.session_state.audit_results = None
+            st.session_state.w1_count = 0
+            st.session_state.w2_count = 0
+            st.session_state.match_count = 0
+            st.rerun()
