@@ -57,7 +57,7 @@ def extract_urls_from_sitemap_url(sitemap_url):
 
 
 def scrape_current_live_site_seo(url):
-    """Crawls a target webpage on the Current Live Site to gather current SEO tags."""
+    """Crawls a target webpage to gather all standard, Facebook, and Twitter SEO tags."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -73,9 +73,18 @@ def scrape_current_live_site_seo(url):
         canonical_tag = soup.find("link", rel="canonical")
         canonical = canonical_tag["href"].strip() if canonical_tag else ""
 
-        og_tags = {}
-        for tag in soup.find_all("meta", property=re.compile(r"^og:")):
-            og_tags[tag["property"]] = tag.get("content", "").strip()
+        # Extract Meta Keywords
+        keywords_tag = soup.find("meta", attrs={"name": "keywords"})
+        keywords = keywords_tag["content"].strip() if keywords_tag else ""
+
+        # Extract Social Meta Tags (Facebook & Twitter)
+        social_tags = {}
+        for tag in soup.find_all("meta"):
+            prop = tag.get("property", "")
+            name = tag.get("name", "")
+            key = prop if prop else name
+            if key.startswith("og:") or key.startswith("twitter:"):
+                social_tags[key] = tag.get("content", "").strip()
 
         schemas = []
         schema_tags = soup.find_all("script", type="application/ld+json")
@@ -90,11 +99,47 @@ def scrape_current_live_site_seo(url):
             "title": title,
             "meta_description": meta_desc,
             "canonical": canonical,
-            "og_tags": json.dumps(og_tags, ensure_ascii=False),
+            "keywords": keywords,
             "schema_json_ld": json.dumps(schemas, ensure_ascii=False),
+            "fb_title": social_tags.get("og:title", title),
+            "fb_desc": social_tags.get("og:description", meta_desc),
+            "fb_image": social_tags.get("og:image", ""),
+            "tw_title": social_tags.get("twitter:title", title),
+            "tw_desc": social_tags.get("twitter:description", meta_desc),
+            "tw_image": social_tags.get("twitter:image", ""),
         }
     except Exception:
         return None
+
+
+def extract_wordpress_page_id(url):
+    """Scrapes the target Beta site URL to locate its unique WordPress ID from page elements."""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return ""
+
+        soup = bs4.BeautifulSoup(response.text, "html.parser")
+
+        body = soup.find("body")
+        if body and body.has_attr("class"):
+            classes = " ".join(body["class"])
+            match = re.search(r"(?:page-id-|postid-|id-)(\d+)", classes, re.IGNORECASE)
+            if match:
+                return match.group(1)
+
+        shortlink = soup.find("link", rel="shortlink")
+        if shortlink and shortlink.has_attr("href"):
+            match = re.search(r"[?&](?:p|page_id)=(\d+)", shortlink["href"])
+            if match:
+                return match.group(1)
+
+        return ""
+    except Exception:
+        return ""
 
 
 def get_domain_prefix(url):
@@ -119,7 +164,7 @@ if "w2_count" not in st.session_state:
 if "match_count" not in st.session_state:
     st.session_state.match_count = 0
 
-# --- Advanced Adaptive SaaS Style Injector ---
+# --- Interface Design Custom Styling Injector ---
 st.set_page_config(
     page_title="Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
 )
@@ -129,12 +174,10 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
-    /* Font Polish Across Global Container */
     html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
     
-    /* Dynamic Gradient Heading Style */
     .dashboard-title {
         background: linear-gradient(135deg, #00C9A7 0%, #0052D4 100%);
         -webkit-background-clip: text;
@@ -151,7 +194,6 @@ st.markdown(
         font-size: 1.05rem !important;
         font-weight: 500 !important;
         margin-bottom: 4px;
-        line-height: 1.4;
     }
     
     .brand-attribution {
@@ -163,47 +205,26 @@ st.markdown(
         margin-bottom: 25px;
     }
     
-    /* Modernized SaaS Cards for Metrics Block */
     div[data-testid="stMetric"] {
         background-color: var(--secondary-background-color) !important;
         border: 1px solid rgba(0, 201, 167, 0.2) !important;
         border-radius: 14px !important;
         padding: 20px 24px !important;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
     }
     
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-        border-color: rgba(0, 201, 167, 0.4) !important;
-    }
-    
-    /* Unified Numeric Metrics Typography & High Contrast Styling */
     div[data-testid="stMetricValue"] {
         color: #0052D4 !important;
         font-weight: 800 !important;
         font-size: 2.8rem !important;
-        letter-spacing: -1px;
     }
     
-    /* Specific adjustment to prevent dark mode visibility washing out */
     @media (prefers-color-scheme: dark) {
         div[data-testid="stMetricValue"] {
             color: #00C9A7 !important;
         }
     }
     
-    div[data-testid="stMetricLabel"] {
-        color: var(--text-color) !important;
-        opacity: 0.7;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    /* High Visibility Primary Run Audit Action Button Setup */
     button[aria-label="⚡ RUN MATCHING AUDIT"] {
         background: linear-gradient(135deg, #00C9A7 0%, #0052D4 100%) !important;
         color: #FFFFFF !important;
@@ -212,49 +233,20 @@ st.markdown(
         border-radius: 10px !important;
         padding: 14px 28px !important;
         box-shadow: 0 10px 20px -10px rgba(0, 82, 212, 0.5) !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    button[aria-label="⚡ RUN MATCHING AUDIT"]:hover {
-        box-shadow: 0 20px 25px -10px rgba(0, 82, 212, 0.6) !important;
-        transform: translateY(-1px);
-        opacity: 0.95;
     }
     
-    /* Secondary Download & Interface Action Buttons Configuration */
     div.stDownloadButton > button, button[aria-label="🔄 START AUDIT FOR NEW SITE"] {
         background-color: var(--background-color) !important;
         color: var(--text-color) !important;
         border: 1px solid rgba(128, 128, 128, 0.25) !important;
         border-radius: 10px !important;
         font-weight: 600 !important;
-        padding: 10px 20px !important;
-        transition: all 0.2s ease !important;
-    }
-    div.stDownloadButton > button:hover, button[aria-label="🔄 START AUDIT FOR NEW SITE"]:hover {
-        border-color: #00C9A7 !important;
-        color: #00C9A7 !important;
-        background-color: var(--secondary-background-color) !important;
-    }
-    
-    /* Clean inputs design layout card block styles */
-    .stTextInput > div {
-        border-radius: 10px !important;
-        border: 1px solid rgba(128, 128, 128, 0.2) !important;
-        background-color: var(--secondary-background-color) !important;
-    }
-    
-    /* Elegant Expandable Info Boxes */
-    div[data-testid="stExpander"] {
-        background-color: var(--secondary-background-color) !important;
-        border: 1px solid rgba(128, 128, 128, 0.15) !important;
-        border-radius: 10px !important;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Header Section
 st.markdown(
     "<h1 class='dashboard-title'>🔮 Redesign SEO Migration Suite</h1>",
     unsafe_allow_html=True,
@@ -268,63 +260,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Detailed Info Dropdown
-with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline", expanded=False):
-    st.markdown(
-        """
-        ### What this application does:
-        This application automates and speeds up the **SEO migration process during a website redesign**. It eliminates manual entry by scraping data from your old, live website and restructuring it into a clean blueprint format ready for bulk deployment on your new site.
-        
-        **Key Features & Workflow:**
-        * **Automated URL Mapping:** Deep-scrapes sitemaps from both your **Current Live Site** and **Beta Site**, matching corresponding pages automatically using URL slugs.
-        * **Full-Scale SEO Scraper:** Crawls the live site to gather **all production SEO meta-data** including Meta Titles, Meta Descriptions, Canonical Tags, Open Graph structures, and Schema JSON-LD blocks.
-        * **RankMath Compatibility Export:** Packages all extracted metrics into a custom structured data sheet designed for WordPress imports, allowing you to bulk-upload and instantly deploy your entire SEO portfolio onto the new environment.
-        """
-    )
+with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline"):
+    st.markdown("Automates mapping and metadata harvesting targets across platform architectures.")
 
-st.write("")
-
-# Target Entry Panel
 col1, col2 = st.columns(2)
 with col1:
-    sitemap_1_input = st.text_input(
-        "Enter Current Live Site (Sitemap XML URL)",
-        value="",
-        placeholder="e.g., https://example.com/sitemap_index.xml",
-    )
+    sitemap_1_input = st.text_input("Enter Current Live Site (Sitemap XML URL)", value="")
 with col2:
-    sitemap_2_input = st.text_input(
-        "Enter Beta Site (Sitemap XML URL)",
-        value="",
-        placeholder="e.g., https://beta.example.com/sitemap_index.xml",
-    )
+    sitemap_2_input = st.text_input("Enter Beta Site (Sitemap XML URL)", value="")
 
-st.write("")
-
-# Centered Action Trigger Implementation Block
 _, center_btn_col, _ = st.columns([2, 2, 2])
 with center_btn_col:
-    action_btn = st.button(
-        "⚡ RUN MATCHING AUDIT", type="primary", use_container_width=True
-    )
+    action_btn = st.button("⚡ RUN MATCHING AUDIT", type="primary", use_container_width=True)
 
-# Execution Logic Processing Window
 if action_btn:
     if not sitemap_1_input.strip() or not sitemap_2_input.strip():
-        st.error(
-            "Execution parameters incomplete. Please fill out both sitemap address boxes to proceed."
-        )
-    elif sitemap_1_input.strip() == sitemap_2_input.strip():
-        st.error(
-            "🔄 Input Conflict: Both fields contain the exact same URL. Please enter your old live sitemap on the left and your beta sitemap on the right."
-        )
+        st.error("Execution parameters incomplete.")
     else:
-        with st.spinner("Extracting deep index maps recursively..."):
+        with st.spinner("Processing deep indexing & harvesting properties..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
-            st.error("Failed to parse targets. Confirm XML access privileges.")
+            st.error("Failed to parse configurations safely.")
         else:
             st.session_state.w1_count = len(w1_urls)
             st.session_state.w2_count = len(w2_urls)
@@ -340,7 +298,7 @@ if action_btn:
             status_text = st.empty()
 
             for i, (slug, url) in enumerate(w1_slug_to_url.items()):
-                status_text.markdown(f"`Scanning Live Site:` **/{slug}**")
+                status_text.markdown(f"`Scanning Live Site Engine:` **/{slug}**")
                 seo = scrape_current_live_site_seo(url)
                 if seo:
                     w1_seo_data[slug] = seo
@@ -352,9 +310,15 @@ if action_btn:
             final_rows = []
             matched_counter = 0
 
+            beta_progress = st.progress(0)
+            beta_status = st.empty()
+
             for idx, w2_url in enumerate(w2_urls, start=1):
                 w2_slug = get_slug_from_url(w2_url)
                 display_w2_slug = "/" if w2_slug == "homepage" else f"/{w2_slug}"
+                beta_status.markdown(f"`Fetching Beta WordPress Metadata:` **{display_w2_slug}**")
+
+                wp_page_id = extract_wordpress_page_id(w2_url)
 
                 if w2_slug in w1_slug_to_url:
                     w1_url = w1_slug_to_url[w2_slug]
@@ -366,43 +330,56 @@ if action_btn:
                     meta_title = seo["title"] if seo else ""
                     meta_desc = seo["meta_description"] if seo else ""
                     canonical = seo["canonical"] if seo else ""
-                    og_tags = seo["og_tags"] if seo else ""
+                    keywords = seo["keywords"] if seo else ""
                     schema = seo["schema_json_ld"] if seo else ""
+                    
+                    # Social variables mapping
+                    fb_title = seo["fb_title"] if seo else ""
+                    fb_desc = seo["fb_desc"] if seo else ""
+                    fb_image = seo["fb_image"] if seo else ""
+                    tw_title = seo["tw_title"] if seo else ""
+                    tw_desc = seo["tw_desc"] if seo else ""
+                    tw_image = seo["tw_image"] if seo else ""
                 else:
                     w1_url = "N/A"
                     display_w1_slug = "N/A"
                     match_status = "NO MATCH"
-                    meta_title = "N/A"
-                    meta_desc = "N/A"
-                    canonical = "N/A"
-                    og_tags = "N/A"
-                    schema = "N/A"
+                    meta_title, meta_desc, canonical, keywords, schema = "N/A", "N/A", "N/A", "N/A", "N/A"
+                    fb_title, fb_desc, fb_image, tw_title, tw_desc, tw_image = "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"
 
                 final_rows.append(
                     {
                         "#": idx,
+                        "Beta WP Page ID": wp_page_id,
                         "Current Live Site Slug": display_w1_slug,
                         "Beta Site Slug": display_w2_slug,
                         "Match Status": match_status,
+                        "Meta Tags / Keywords": keywords,
                         "Current Live Site Raw URL": w1_url,
                         "Beta Site Raw URL": w2_url,
                         "Meta Title (from Live)": meta_title,
                         "Meta Description (from Live)": meta_desc,
                         "Canonical Tag (from Live)": canonical,
-                        "Open Graph Tags (from Live)": og_tags,
-                        "Schema JSON-LD (from Live)": schema,
+                        "Schema JSON-LD": schema,
+                        "fb_title": fb_title,
+                        "fb_desc": fb_desc,
+                        "fb_image": fb_image,
+                        "tw_title": tw_title,
+                        "tw_desc": tw_desc,
+                        "tw_image": tw_image,
                     }
                 )
+                beta_progress.progress((idx) / len(w2_urls))
+
+            beta_progress.empty()
+            beta_status.empty()
 
             st.session_state.match_count = matched_counter
             st.session_state.audit_results = pd.DataFrame(final_rows)
             st.toast("Verification Complete!", icon="✨")
 
-# Presentation Panel View Layout
 if st.session_state.audit_results is not None:
     st.write("---")
-
-    # Balanced Analytics Metrics Row
     m1, m2, m3 = st.columns(3)
     with m1:
         st.metric(label="Live Site Total URLs", value=st.session_state.w1_count)
@@ -412,25 +389,14 @@ if st.session_state.audit_results is not None:
         st.metric(label="Matched Intersections", value=st.session_state.match_count)
 
     st.write("")
-
-    st.dataframe(
-        st.session_state.audit_results,
-        use_container_width=True,
-        hide_index=True,
-    )
+    st.dataframe(st.session_state.audit_results, use_container_width=True, hide_index=True)
 
     st.write("")
-
-    # Determine Domain Prefix Signature Name dynamically
     site_prefix = get_domain_prefix(sitemap_1_input)
-
-    # Action Row Options Grid
     btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
-        csv_data = st.session_state.audit_results.to_csv(
-            index=False, encoding="utf-8-sig"
-        )
+        csv_data = st.session_state.audit_results.to_csv(index=False, encoding="utf-8-sig")
         st.download_button(
             label="📥 EXPORT MASTER DATA SHEET",
             data=csv_data,
@@ -440,24 +406,33 @@ if st.session_state.audit_results is not None:
         )
 
     with btn_col2:
-        matched_df = st.session_state.audit_results[
-            st.session_state.audit_results["Match Status"] == "MATCHED"
-        ].copy()
-
+        matched_df = st.session_state.audit_results[st.session_state.audit_results["Match Status"] == "MATCHED"].copy()
+        
+        # Exact Column Configuration structure mapping from RankMath CSV Specification requirements
         rankmath_complete_df = pd.DataFrame(
             {
-                "url": matched_df["Beta Site Raw URL"],
-                "title": matched_df["Meta Title (from Live)"],
-                "description": matched_df["Meta Description (from Live)"],
-                "canonical": matched_df["Canonical Tag (from Live)"],
-                "og_metadata": matched_df["Open Graph Tags (from Live)"],
-                "schema_markup": matched_df["Schema JSON-LD (from Live)"],
+                "id": matched_df["Beta WP Page ID"],
+                "object_type": "post",  # Default WordPress database object descriptor
+                "slug": matched_df["Beta Site Slug"].str.strip("/"),
+                "seo_title": matched_df["Meta Title (from Live)"],
+                "seo_description": matched_df["Meta Description (from Live)"],
+                "is_pillar_content": 0,
+                "focus_keyword": matched_df["Meta Tags / Keywords"],
+                "seo_score": 0,
+                "robots": "",
+                "advanced_canonical": matched_df["Canonical Tag (from Live)"],
+                "primary_term": "",
+                "schema_data": matched_df["Schema JSON-LD"],
+                "social_facebook_title": matched_df["fb_title"],
+                "social_facebook_description": matched_df["fb_desc"],
+                "social_facebook_image": matched_df["fb_image"],
+                "social_twitter_title": matched_df["tw_title"],
+                "social_twitter_image": matched_df["tw_image"],
+                "social_twitter_description": matched_df["tw_desc"]
             }
         )
-
-        rankmath_all_csv = rankmath_complete_df.to_csv(
-            index=False, encoding="utf-8-sig"
-        )
+        
+        rankmath_all_csv = rankmath_complete_df.to_csv(index=False, encoding="utf-8-sig")
         st.download_button(
             label="📥 EXPORT RANKMATH ALL SEO DATA",
             data=rankmath_all_csv,
