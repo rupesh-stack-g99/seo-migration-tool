@@ -107,29 +107,67 @@ if "w2_count" not in st.session_state:
 if "match_count" not in st.session_state:
     st.session_state.match_count = 0
 
-# --- Advanced Dashboard UI Theme Styling ---
+# --- Advanced Cyberpunk UI Dashboard Theme ---
 st.set_page_config(
-    page_title="Enterprise SEO Migration Control Suite",
-    page_icon="⚡",
-    layout="wide",
+    page_title="SEO Migration Command Center", page_icon="🔮", layout="wide"
 )
 
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    
     .main .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    h1 { color: #00FFCC !important; font-weight: 800 !important; letter-spacing: -1px; }
-    .stButton>button {
-        background-color: #00FFCC !important; color: #0E1117 !important;
-        font-weight: 700 !important; border-radius: 8px !important;
-        border: none !important; padding: 0.6rem 2rem !important;
-        transition: all 0.3s ease;
+    
+    /* Title Graphics */
+    .title-glow {
+        font-family: 'Orbitron', sans-serif;
+        color: #00FFCC !important;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+        margin-bottom: 5px;
     }
-    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,255,204,0.4); }
-    div[data-testid="stMetricValue"] { color: #00FFCC !important; font-family: monospace; font-size: 2.2rem; }
-    .status-card {
-        background: #1E2633; padding: 20px; border-radius: 12px;
-        border-left: 5px solid #00FFCC; margin-bottom: 20px;
+    .subtitle-text {
+        font-family: 'Rajdhani', sans-serif;
+        color: #8A99AD;
+        font-size: 1.15rem;
+        font-weight: 500;
+        margin-bottom: 25px;
+    }
+    
+    /* Tech Glass Cards */
+    .crypto-card {
+        background: linear-gradient(135deg, rgba(19, 26, 42, 0.9) 0%, rgba(10, 15, 28, 0.95) 100%);
+        border: 1px solid rgba(0, 255, 204, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 25px;
+    }
+    .crypto-card h4 {
+        font-family: 'Orbitron', sans-serif;
+        color: #FF007F !important;
+        font-size: 1rem;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+    }
+    
+    /* Metrics Styling */
+    div[data-testid="stMetricValue"] {
+        color: #00FFCC !important;
+        font-family: 'Orbitron', monospace;
+        font-size: 2.5rem !important;
+        font-weight: 700;
+        text-shadow: 0 0 10px rgba(0,255,204,0.3);
+    }
+    div[data-testid="stMetricLabel"] {
+        font-family: 'Rajdhani', sans-serif;
+        color: #AEB9E6 !important;
+        font-size: 1rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     </style>
 """,
@@ -137,44 +175,43 @@ st.markdown(
 )
 
 # Header Section
-st.title("⚡ Enterprise SEO Migration Suite")
+st.markdown("<h1 class='title-glow'>🔮 SEO Migration Matrix</h1>", unsafe_allow_html=True)
 st.markdown(
-    "Automated deep mapping matrix connecting structural slug configurations with historical metadata alignments."
+    "<p class='subtitle-text'>Deep-scanning automation engine pairing production structural slugs with target data branches.</p>",
+    unsafe_allow_html=True,
 )
 
-# Input Panel
-with st.container():
-    st.markdown(
-        "<div class='status-card'><h4>Config Target Entry Endpoints</h4></div>",
-        unsafe_allow_html=True,
+# Input Control Panel Block
+st.markdown("<div class='crypto-card'>", unsafe_allow_html=True)
+st.markdown("<h4>TARGET NETWORK ENDPOINTS</h4>", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+with col1:
+    sitemap_1_input = st.text_input(
+        "Current Live Site Sitemap XML URL",
+        "https://youthfulmedicine.com/sitemap_index.xml",
     )
-    col1, col2 = st.columns(2)
-    with col1:
-        sitemap_1_input = st.text_input(
-            "Current Live Site Sitemap XML URL",
-            "https://youthfulmedicine.com/sitemap_index.xml",
-        )
-    with col2:
-        sitemap_2_input = st.text_input(
-            "Beta Site Sitemap XML URL",
-            "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
-        )
+with col2:
+    sitemap_2_input = st.text_input(
+        "Beta Site Sitemap XML URL",
+        "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
+    )
 
-    action_btn = st.button("Run Automated Alignment Audit", type="primary")
+st.write("")
+action_btn = st.button("RUN AUTOMATED MATRIX ALIGNMENT", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# Execution Engine
+# Processing Engine
 if action_btn:
     if not sitemap_1_input or not sitemap_2_input:
-        st.error("Missing targeting parameters. Provide input to proceed.")
+        st.error("Execution halted: Endpoint URLs must be provided.")
     else:
-        with st.spinner("Processing deep target mapping indices recursively..."):
+        with st.spinner("Extracting deep tracking records recursively..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
-            st.error(
-                "Zero endpoint entities resolved. Verify sitemap configurations."
-            )
+            st.error("Zero records retrieved. Check target sitemap status.")
         else:
             st.session_state.w1_count = len(w1_urls)
             st.session_state.w2_count = len(w2_urls)
@@ -190,9 +227,7 @@ if action_btn:
             status_text = st.empty()
 
             for i, (slug, url) in enumerate(w1_slug_to_url.items()):
-                status_text.markdown(
-                    f"`Scraping Current Live Site:` **/{slug}**"
-                )
+                status_text.markdown(f"`Scanning Live Site Node:` **/{slug}**")
                 seo = scrape_current_live_site_seo(url)
                 if seo:
                     w1_seo_data[slug] = seo
@@ -248,26 +283,24 @@ if action_btn:
 
             st.session_state.match_count = matched_counter
             st.session_state.audit_results = pd.DataFrame(final_rows)
-            st.success("🎉 Alignment Matrix successfully compiled!")
+            st.toast("Matrix Compiled Successfully!", icon="🚀")
 
-# Data Display Workspace
+# Dashboard Results Display Workspace
 if st.session_state.audit_results is not None:
-    st.write("---")
+    st.write("")
 
-    # Real-Time Dashboard Analytics Cards
+    # Real-time Analytics Cards
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.metric(
-            label="Live Site URLs Found", value=st.session_state.w1_count
-        )
+        st.metric(label="Live Site Total URLs", value=st.session_state.w1_count)
     with m2:
-        st.metric(label="Beta Site URLs Found", value=st.session_state.w2_count)
+        st.metric(label="Beta Site Total URLs", value=st.session_state.w2_count)
     with m3:
-        st.metric(label="Matched Slugs", value=st.session_state.match_count)
+        st.metric(label="Matched Intersections", value=st.session_state.match_count)
 
     st.write("")
 
-    # High-Performance Data Matrix Presentation Panel
+    # Data Presentation Panel
     st.dataframe(
         st.session_state.audit_results,
         use_container_width=True,
@@ -276,22 +309,26 @@ if st.session_state.audit_results is not None:
 
     st.write("")
 
-    # Persistent Global Controller Panel
-    ctrl_col1, ctrl_col2 = st.columns([1, 4])
-    with ctrl_col1:
+    # Cleaned, Side-by-Side Action Button Control Bar
+    btn_col1, btn_col2 = st.columns(2)
+
+    with btn_col1:
         csv_data = st.session_state.audit_results.to_csv(
             index=False, encoding="utf-8-sig"
         )
         st.download_button(
-            label="📥 Export Clean CSV",
+            label="📥 EXPORT CLEAN MATRIX CSV",
             data=csv_data,
             file_name="seo_migration_matrix.csv",
             mime="text/csv",
+            use_container_width=True,
         )
-    with ctrl_col2:
-        if st.button("🔄 Reset Suite / Rerun New Audit"):
+
+    with btn_col2:
+        if st.button("🔄 RESET SUITE & RERUN NEW AUDIT", use_container_width=True):
             st.session_state.audit_results = None
             st.session_state.w1_count = 0
             st.session_state.w2_count = 0
             st.session_state.match_count = 0
+            st.clear_cache()
             st.rerun()
