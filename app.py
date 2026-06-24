@@ -11,7 +11,7 @@ import streamlit as st
 
 
 def get_slug_from_url(url):
-    """Extracts purely the clean path slug from any URL string, ignoring the domain name."""
+    """Extracts purely the clean path slug from any URL, ignoring the domain."""
     if not url:
         return ""
     parsed_url = urlparse(url)
@@ -21,7 +21,7 @@ def get_slug_from_url(url):
 
 
 def extract_urls_from_sitemap_url(sitemap_url):
-    """Fetches and reads all URLs from a sitemap link, handling sub-sitemaps automatically."""
+    """Fetches and reads all URLs from a sitemap, handling nested indexes automatically."""
     urls = set()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -32,11 +32,11 @@ def extract_urls_from_sitemap_url(sitemap_url):
         if response.status_code != 200:
             return []
 
-        # Strip namespace to ensure element tags parse easily
+        # Remove XML namespaces dynamically to make standard tag parsing foolproof
         xml_data = re.sub(r'\sxmlns="[^"]+"', "", response.text, count=1)
         root = ET.fromstring(xml_data.encode("utf-8"))
 
-        # Look for nested sitemap indices
+        # Case A: Nested Sitemap Index (<sitemap> tags)
         sitemaps = root.findall(".//sitemap/loc")
         if sitemaps:
             for sitemap_node in sitemaps:
@@ -44,7 +44,7 @@ def extract_urls_from_sitemap_url(sitemap_url):
                 sub_urls = extract_urls_from_sitemap_url(sub_url)
                 urls.update(sub_urls)
 
-        # Look for direct page URLs
+        # Case B: Direct Page List (<url> tags)
         locs = root.findall(".//url/loc")
         for loc in locs:
             if loc.text:
@@ -56,7 +56,7 @@ def extract_urls_from_sitemap_url(sitemap_url):
 
 
 def scrape_website_1_seo(url):
-    """Crawls a single URL on Website 1 to scrape its live SEO elements."""
+    """Crawls a single page on Website 1 to scrape its live SEO metrics."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -96,44 +96,44 @@ def scrape_website_1_seo(url):
         return None
 
 
-# --- Streamlit Layout ---
+# --- Streamlit Layout Configuration ---
 st.set_page_config(page_title="SEO Migration Mapper", page_icon="🗺️", layout="wide")
 
 st.title("🗺️ Automated URL Slug-to-Slug SEO Mapper")
 st.write(
-    "Paste the sitemap links below. The tool will parse all full URLs, strip them down to **pure slugs**, match them up, and transfer Website 1's SEO metrics."
+    "Paste the direct **Sitemap XML paths** below. The tool will parse the full links, strip them down to pure slugs, and cross-match them."
 )
 
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
-        "Website 1 (Main Live Sitemap XML URL)",
+        "Website 1 Sitemap XML URL (Main Live Site)",
         "https://youthfulmedicine.com/sitemap.xml",
     )
 with col2:
     sitemap_2_input = st.text_input(
-        "Website 2 (Beta Website Sitemap XML URL)",
+        "Website 2 Sitemap XML URL (Beta Site)",
         "https://youthfulmedicine.gogroth.com/sitemap.xml",
     )
 
 if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
     if not sitemap_1_input or not sitemap_2_input:
-        st.error("Please fill out both sitemap address fields.")
+        st.error("Please enter both sitemap XML addresses.")
     else:
-        with st.spinner("Step 1: Extracting URLs from both sitemaps..."):
+        with st.spinner("Extracting active target URLs from sitemaps..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
         st.info(
-            f"📋 Pulled {len(w1_urls)} URLs from Website 1 and {len(w2_urls)} URLs from Website 2."
+            f"📋 Loaded {len(w1_urls)} URLs from Website 1 and {len(w2_urls)} URLs from Website 2."
         )
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
             st.error(
-                "Could not parse any URLs. Verify that both sitemap URLs are fully functional XML paths."
+                "Failed to pull data. Ensure you pasted a working sitemap link endpoint that contains valid XML metrics."
             )
         else:
-            # Step 2: Extract data from Website 1 and map it by its pure slug
+            # Step 1: Scrape and index Website 1 by its pure slug
             w1_data_store = {}
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -141,7 +141,7 @@ if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
             for i, url in enumerate(w1_urls):
                 slug = get_slug_from_url(url)
                 status_text.text(
-                    f"Scraping Website 1 Data for Slug ({i+1}/{len(w1_urls)}): /{slug}"
+                    f"Scraping Website 1 Metadata ({i+1}/{len(w1_urls)}): /{slug}"
                 )
 
                 seo_info = scrape_website_1_seo(url)
@@ -149,11 +149,11 @@ if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
                     w1_data_store[slug] = seo_info
                 progress_bar.progress((i + 1) / len(w1_urls))
 
-            status_text.text("Compiling comparison matrix...")
+            status_text.text("Building layout dataframe alignment matrix...")
 
-            # Step 3: Match Website 2 slugs against Website 1 slugs
+            # Step 2: Loop through Website 2 pages, match by slugs, and organize structural data columns
             final_rows = []
-            for w2_url in w2_urls:
+            for idx, w2_url in enumerate(w2_urls, start=1):
                 slug = get_slug_from_url(w2_url)
                 display_slug = "/" if slug == "homepage" else f"/{slug}"
 
@@ -161,9 +161,10 @@ if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
                     w1_seo = w1_data_store[slug]
                     final_rows.append(
                         {
+                            "#": idx,
+                            "Website 1 Slug (Live)": display_slug,
+                            "Website 2 Slug (Beta)": display_slug,
                             "Match Status": "MATCHED",
-                            "Website 2 Slug": display_slug,
-                            "Website 1 Slug": display_slug,
                             "Meta Title (from W1)": w1_seo["title"],
                             "Meta Description (from W1)": w1_seo["meta_description"],
                             "Canonical Tag (from W1)": w1_seo["canonical"],
@@ -174,9 +175,10 @@ if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
                 else:
                     final_rows.append(
                         {
+                            "#": idx,
+                            "Website 1 Slug (Live)": "N/A",
+                            "Website 2 Slug (Beta)": display_slug,
                             "Match Status": "NO MATCH FOUND",
-                            "Website 2 Slug": display_slug,
-                            "Website 1 Slug": "N/A",
                             "Meta Title (from W1)": "N/A",
                             "Meta Description (from W1)": "N/A",
                             "Canonical Tag (from W1)": "N/A",
@@ -189,9 +191,12 @@ if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
             progress_bar.empty()
             status_text.empty()
 
-            st.success("🎉 Migration Mapping Sheet Compiled!")
+            st.success("🎉 Migration Mapping Sheet Generated!")
+
+            # Render data matrix explicitly in your UI view window
             st.dataframe(df, use_container_width=True)
 
+            # Export structured data arrays directly into file download streams
             csv_data = df.to_csv(index=False, encoding="utf-8-sig")
             st.download_button(
                 label="📥 Download Data Mapping CSV",
