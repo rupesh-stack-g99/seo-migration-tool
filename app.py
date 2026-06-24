@@ -119,7 +119,7 @@ if "w2_count" not in st.session_state:
 if "match_count" not in st.session_state:
     st.session_state.match_count = 0
 
-# --- Advanced Premium Theme Engine & Style Injector ---
+# --- Interface Design Custom Styling Injector ---
 st.set_page_config(
     page_title="Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
 )
@@ -127,125 +127,94 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
-    /* Global Application Reset & Background Engine */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    /* Global Font Settings tied directly to system themes */
+    html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: #0B0F19 !important;
-        color: #F1F5F9 !important;
     }
     
-    /* Modern Dashboard Title Typography */
+    /* Modern Adaptive Gradient Header */
     .dashboard-title {
-        background: linear-gradient(135deg, #00FFCC 0%, #0077FF 100%);
+        background: linear-gradient(135deg, #00D2B4 0%, #0066EE 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800 !important;
-        font-size: 2.8rem !important;
-        letter-spacing: -1px;
-        margin-bottom: 6px;
+        font-size: 2.5rem !important;
+        letter-spacing: -0.5px;
+        margin-bottom: 4px;
     }
     
+    /* Flexible Subheading based on selected theme colors */
     .dashboard-subheading {
-        color: #94A3B8 !important;
-        font-size: 1.1rem !important;
+        color: var(--text-color) !important;
+        opacity: 0.8;
+        font-size: 1.05rem !important;
         font-weight: 400 !important;
-        line-height: 1.6;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
     }
     
     .brand-attribution {
-        color: #00FFCC !important;
+        color: #00D2B4 !important;
         font-weight: 700 !important;
         font-size: 0.85rem !important;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 30px;
-        opacity: 0.9;
+        letter-spacing: 1.5px;
+        margin-bottom: 25px;
     }
     
-    /* Premium Glassmorphic Card Container for Inputs & Expanders */
-    div[data-testid="stExpander"], .stTextInput > div {
-        background: rgba(30, 41, 59, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 12px !important;
-        backdrop-filter: blur(8px);
-    }
-    
-    /* Sleek Metrics Cards Transformation */
+    /* Universal Adaptive Metric Framework Boxes */
     div[data-testid="stMetric"] {
-        background: rgba(15, 23, 42, 0.6) !important;
-        border: 1px solid rgba(0, 255, 204, 0.15) !important;
-        border-radius: 16px !important;
-        padding: 20px 24px !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 255, 204, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 204, 0.12);
+        background-color: var(--secondary-background-color) !important;
+        border: 1px solid rgba(0, 210, 180, 0.25) !important;
+        border-radius: 12px !important;
+        padding: 15px 20px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     div[data-testid="stMetricValue"] {
-        color: #00FFCC !important;
-        font-weight: 800 !important;
-        font-size: 2.8rem !important;
-        letter-spacing: -0.5px;
-    }
-    div[data-testid="stMetricLabel"] {
-        color: #94A3B8 !important;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Action Button Themes Reset */
-    button[aria-label="⚡ RUN MATCHING AUDIT"] {
-        background: linear-gradient(135deg, #00FFCC 0%, #0077FF 100%) !important;
-        color: #0B0F19 !important;
+        color: #0066EE !important;
         font-weight: 700 !important;
-        letter-spacing: 0.5px !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 12px 24px !important;
-        box-shadow: 0 4px 20px rgba(0, 255, 204, 0.25) !important;
-        transition: all 0.25s ease !important;
-    }
-    button[aria-label="⚡ RUN MATCHING AUDIT"]:hover {
-        box-shadow: 0 6px 28px rgba(0, 255, 204, 0.45) !important;
-        transform: scale(1.01);
+        font-size: 2.5rem !important;
     }
     
-    /* Secondary Download Buttons Style Adjustments */
-    div.stDownloadButton > button {
-        background: rgba(30, 41, 59, 0.7) !important;
-        color: #F1F5F9 !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 10px !important;
-        font-weight: 600 !important;
+    [data-theme="dark"] div[data-testid="stMetricValue"] {
+        color: #00D2B4 !important;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: var(--text-color) !important;
+        opacity: 0.7;
+        font-size: 0.85rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* High Visibility Primary Run Audit Action Button Setup */
+    button[aria-label="⚡ RUN MATCHING AUDIT"] {
+        background: linear-gradient(135deg, #00D2B4 0%, #0066EE 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        box-shadow: 0 4px 15px rgba(0, 102, 238, 0.2) !important;
         transition: all 0.2s ease !important;
     }
-    div.stDownloadButton > button:hover {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-color: #00FFCC !important;
-        color: #00FFCC !important;
+    button[aria-label="⚡ RUN MATCHING AUDIT"]:hover {
+        box-shadow: 0 6px 20px rgba(0, 102, 238, 0.35) !important;
+        transform: translateY(-1px);
     }
     
-    /* Clean Modernized Scrollbars */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+    /* Universal Theme Secondary Buttons Configuration */
+    div.stDownloadButton > button {
+        background-color: var(--secondary-background-color) !important;
+        color: var(--text-color) !important;
+        border: 1px solid rgba(128, 128, 128, 0.3) !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
     }
-    ::-webkit-scrollbar-track {
-        background: #0B0F19;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #1E293B;
-        border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #334155;
+    div.stDownloadButton > button:hover {
+        border-color: #00D2B4 !important;
+        color: #00D2B4 !important;
     }
     </style>
 """,
