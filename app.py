@@ -63,8 +63,8 @@ def extract_urls_from_sitemap_url(sitemap_url):
         return []
 
 
-def scrape_website_1_seo(url):
-    """Crawls a target live webpage on Website 1 to gather current SEO tags."""
+def scrape_current_live_site_seo(url):
+    """Crawls a target webpage on the Current Live Site to gather current SEO tags."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -111,18 +111,18 @@ st.set_page_config(
 
 st.title("🗺️ Automated URL Slug-to-Slug SEO Mapper")
 st.write(
-    "Enter the exact sitemap XML addresses for both websites. The engine will extract all nested links, pull the slugs, map them, and gather live SEO data."
+    "Enter the exact sitemap XML addresses below. The engine will extract all nested links, pull the slugs, map them, and gather Current Live Site SEO data."
 )
 
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
-        "Website 1 Sitemap XML URL (Main Live Site)",
+        "Current Live Site Sitemap XML URL",
         "https://youthfulmedicine.com/sitemap_index.xml",
     )
 with col2:
     sitemap_2_input = st.text_input(
-        "Website 2 Sitemap XML URL (Beta Site)",
+        "Beta Site Sitemap XML URL",
         "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
     )
 
@@ -136,7 +136,7 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
 
         # Show exactly how many URLs were uncovered from the sitemaps
         st.info(
-            f"📋 Discovered {len(w1_urls)} URLs from Website 1 and {len(w2_urls)} URLs from Website 2."
+            f"📋 Discovered {len(w1_urls)} URLs from Current Live Site and {len(w2_urls)} URLs from Beta Site."
         )
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
@@ -144,30 +144,30 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
                 "Could not extract any URLs. Please verify that both sitemap inputs are live XML addresses."
             )
         else:
-            # Map Website 1 URLs using their clean path slug as the lookup key
+            # Map Current Live Site URLs using their clean path slug as the lookup key
             w1_slug_to_url = {}
             for url in w1_urls:
                 slug = get_slug_from_url(url)
                 if slug:
                     w1_slug_to_url[slug] = url
 
-            # Scrape Website 1 pages for real-time SEO validation
+            # Scrape Current Live Site pages for real-time SEO validation
             w1_seo_data = {}
             progress_bar = st.progress(0)
             status_text = st.empty()
 
             for i, (slug, url) in enumerate(w1_slug_to_url.items()):
                 status_text.text(
-                    f"Scraping Website 1 Metadata ({i+1}/{len(w1_slug_to_url)}): /{slug}"
+                    f"Scraping Current Live Site Metadata ({i+1}/{len(w1_slug_to_url)}): /{slug}"
                 )
-                seo = scrape_website_1_seo(url)
+                seo = scrape_current_live_site_seo(url)
                 if seo:
                     w1_seo_data[slug] = seo
                 progress_bar.progress((i + 1) / len(w1_slug_to_url))
 
             status_text.text("Matching slug matrix arrays side-by-side...")
 
-            # Build matrix rows driven by Website 2's structure
+            # Build matrix rows driven by Beta Site's structure
             final_rows = []
             for idx, w2_url in enumerate(w2_urls, start=1):
                 w2_slug = get_slug_from_url(w2_url)
@@ -198,16 +198,16 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
                 final_rows.append(
                     {
                         "#": idx,
-                        "Website 1 Slug": display_w1_slug,
-                        "Website 2 Slug": display_w2_slug,
+                        "Current Live Site Slug": display_w1_slug,
+                        "Beta Site Slug": display_w2_slug,
                         "Match Status": match_status,
-                        "Website 1 Raw URL": w1_url,
-                        "Website 2 Raw URL": w2_url,
-                        "Meta Title (W1)": meta_title,
-                        "Meta Description (W1)": meta_desc,
-                        "Canonical Tag (W1)": canonical,
-                        "Open Graph Tags (W1)": og_tags,
-                        "Schema JSON-LD (W1)": schema,
+                        "Current Live Site Raw URL": w1_url,
+                        "Beta Site Raw URL": w2_url,
+                        "Meta Title (from Live)": meta_title,
+                        "Meta Description (from Live)": meta_desc,
+                        "Canonical Tag (from Live)": canonical,
+                        "Open Graph Tags (from Live)": og_tags,
+                        "Schema JSON-LD (from Live)": schema,
                     }
                 )
 
@@ -222,6 +222,6 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
             st.download_button(
                 label="📥 Download Structured CSV Matrix",
                 data=csv_data,
-                file_name="sitemap_seo_migration_matrix.csv",
+                file_name="seo_migration_matrix.csv",
                 mime="text/csv",
             )
