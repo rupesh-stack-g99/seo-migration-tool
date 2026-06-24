@@ -124,6 +124,7 @@ def extract_wordpress_page_id(url):
 
         soup = bs4.BeautifulSoup(response.text, "html.parser")
 
+        # Check body class attributes
         body = soup.find("body")
         if body and body.has_attr("class"):
             classes = " ".join(body["class"])
@@ -131,6 +132,7 @@ def extract_wordpress_page_id(url):
             if match:
                 return match.group(1)
 
+        # Look into the native shortlink data tags
         shortlink = soup.find("link", rel="shortlink")
         if shortlink and shortlink.has_attr("href"):
             match = re.search(r"[?&](?:p|page_id)=(\d+)", shortlink["href"])
@@ -333,7 +335,6 @@ if action_btn:
                     keywords = seo["keywords"] if seo else ""
                     schema = seo["schema_json_ld"] if seo else ""
                     
-                    # Social variables mapping
                     fb_title = seo["fb_title"] if seo else ""
                     fb_desc = seo["fb_desc"] if seo else ""
                     fb_image = seo["fb_image"] if seo else ""
@@ -344,8 +345,8 @@ if action_btn:
                     w1_url = "N/A"
                     display_w1_slug = "N/A"
                     match_status = "NO MATCH"
-                    meta_title, meta_desc, canonical, keywords, schema = "N/A", "N/A", "N/A", "N/A", "N/A"
-                    fb_title, fb_desc, fb_image, tw_title, tw_desc, tw_image = "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"
+                    meta_title, meta_desc, canonical, keywords, schema = "", "", "", "", ""
+                    fb_title, fb_desc, fb_image, tw_title, tw_desc, tw_image = "", "", "", "", "", ""
 
                 final_rows.append(
                     {
@@ -408,17 +409,17 @@ if st.session_state.audit_results is not None:
     with btn_col2:
         matched_df = st.session_state.audit_results[st.session_state.audit_results["Match Status"] == "MATCHED"].copy()
         
-        # Exact Column Configuration structure mapping from RankMath CSV Specification requirements
+        # RankMath CSV Specification Output Array
         rankmath_complete_df = pd.DataFrame(
             {
                 "id": matched_df["Beta WP Page ID"],
-                "object_type": "post",  # Default WordPress database object descriptor
+                "object_type": "post", 
                 "slug": matched_df["Beta Site Slug"].str.strip("/"),
                 "seo_title": matched_df["Meta Title (from Live)"],
                 "seo_description": matched_df["Meta Description (from Live)"],
                 "is_pillar_content": 0,
                 "focus_keyword": matched_df["Meta Tags / Keywords"],
-                "seo_score": 0,
+                "seo_score": 0,  # Handled as 0 intentionally so RankMath calculates it locally inside WordPress
                 "robots": "",
                 "advanced_canonical": matched_df["Canonical Tag (from Live)"],
                 "primary_term": "",
