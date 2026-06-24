@@ -131,11 +131,6 @@ st.markdown(
         text-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
         margin-bottom: 4px;
     }
-    .dashboard-subtitle {
-        color: #94A3B8;
-        font-size: 1.1rem;
-        margin-bottom: 30px;
-    }
     
     /* Metrics Custom Display */
     div[data-testid="stMetricValue"] {
@@ -159,21 +154,34 @@ st.markdown(
     "<h1 class='dashboard-title'>🔮 SEO Migration Matrix</h1>",
     unsafe_allow_html=True,
 )
-st.markdown(
-    "<p class='dashboard-subtitle'>Automated structural verification pairing Current Live Site nodes with Beta Site destinations.</p>",
-    unsafe_allow_html=True,
-)
+
+# Detailed Info Dropdown
+with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline", expanded=False):
+    st.markdown(
+        """
+        ### What this application does:
+        This platform automates structural verification during web migrations to guarantee that SEO infrastructure remains intact when moving from production to a staging environment.
+        
+        **The automated workflow pipeline operates in four major phases:**
+        1. **Recursive Sitemap Parsing:** Deep-scrapes nested XML architectures (such as index files, page maps, and post structures) to isolate every production and development URL string.
+        2. **URL Isolation & Clean-Path Normalization:** Drops varying structural prefixes, domains, and trailing slashes to isolate identical structural paths (**slugs**) as unique database validation matching keys.
+        3. **Live Meta-Data Mining Extraction:** Crawls individual pages on the **Current Live Site** in real time to collect production elements (SEO Meta Titles, Descriptions, Canonical links, Open Graph parameters, and Schema structure objects).
+        4. **Side-by-Side Convergence Mapping:** Merges staging structures against production nodes. Slugs that are perfectly verified are marked as `MATCHED`, highlighting structural drops as `NO MATCH` dependencies to bypass configuration drift.
+        """
+    )
+
+st.write("")
 
 # Target Entry Panel
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
-        "Current Live Site Sitemap XML URL",
+        "Enter Current Live Site (Sitemap XML URL)",
         "https://youthfulmedicine.com/sitemap_index.xml",
     )
 with col2:
     sitemap_2_input = st.text_input(
-        "Beta Site Sitemap XML URL",
+        "Enter Beta Site (Sitemap XML URL)",
         "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
     )
 
