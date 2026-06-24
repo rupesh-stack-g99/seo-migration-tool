@@ -109,7 +109,7 @@ if "match_count" not in st.session_state:
 
 # --- Interface Design Custom Styling Injector ---
 st.set_page_config(
-    page_title="SEO Migration Suite", page_icon="🔮", layout="wide"
+    page_title="Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
 )
 
 st.markdown(
@@ -149,9 +149,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Header Section
+# Header Section Renamed for Website Redesign Context
 st.markdown(
-    "<h1 class='dashboard-title'>🔮 SEO Migration Matrix</h1>",
+    "<h1 class='dashboard-title'>🔮 Redesign SEO Migration Suite</h1>",
     unsafe_allow_html=True,
 )
 
@@ -172,17 +172,19 @@ with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline", expanded=
 
 st.write("")
 
-# Target Entry Panel
+# Target Entry Panel - Now Empty by Default with Faded Placeholders
 col1, col2 = st.columns(2)
 with col1:
     sitemap_1_input = st.text_input(
         "Enter Current Live Site (Sitemap XML URL)",
-        "https://youthfulmedicine.com/sitemap_index.xml",
+        value="",
+        placeholder="e.g., https://example.com/sitemap_index.xml",
     )
 with col2:
     sitemap_2_input = st.text_input(
-        "Enter Beta Site (Sitemap XML URL)",
-        "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
+        "Enter New Redesign Site (Sitemap XML URL)",
+        value="",
+        placeholder="e.g., https://staging.example.com/sitemap_index.xml",
     )
 
 st.write("")
@@ -196,8 +198,16 @@ with center_btn_col:
 
 # Execution Logic Processing Window
 if action_btn:
-    if not sitemap_1_input or not sitemap_2_input:
-        st.error("Execution parameters incomplete. Both targets are required.")
+    # 1. Check for empty fields
+    if not sitemap_1_input.strip() or not sitemap_2_input.strip():
+        st.error(
+            "Execution parameters incomplete. Please fill out both sitemap address boxes to proceed."
+        )
+    # 2. Duplicate URL protection validation
+    elif sitemap_1_input.strip() == sitemap_2_input.strip():
+        st.error(
+            "🔄 Input Conflict: Both fields contain the exact same URL. Please enter your old live sitemap on the left and your new staging sitemap on the right."
+        )
     else:
         with st.spinner("Extracting deep index maps recursively..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
@@ -287,7 +297,7 @@ if st.session_state.audit_results is not None:
     with m1:
         st.metric(label="Live Site Total URLs", value=st.session_state.w1_count)
     with m2:
-        st.metric(label="Beta Site Total URLs", value=st.session_state.w2_count)
+        st.metric(label="Redesign Site Total URLs", value=st.session_state.w2_count)
     with m3:
         st.metric(label="Matched Intersections", value=st.session_state.match_count)
 
