@@ -11,41 +11,48 @@ import streamlit as st
 
 
 def get_slug_from_url(url):
-    """Extracts purely the clean path slug from any URL, ignoring the domain and trailing slashes."""
+    """Extracts purely the clean path slug from any URL string, ignoring domains and trailing slashes."""
     if not url:
         return ""
-    parsed_url = urlparse(url)
-    path = parsed_url.path
-    slug = path.strip().strip("/").lower()
-    return slug if slug else "homepage"
+    try:
+        parsed_url = urlparse(url.strip())
+        path = parsed_url.path
+        slug = path.strip().strip("/").lower()
+        return slug if slug else "homepage"
+    except Exception:
+        return ""
 
 
 def extract_urls_from_sitemap_url(sitemap_url):
-    """Deep parses sitemaps. Handles nested WordPress/Yoast/RankMath sitemap indexes flawlessly."""
+    """Deep parses sitemap XML data recursively.
+
+    Follows nested <sitemap> tags down to individual page <url> tags.
+    """
     urls = set()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
 
     try:
-        response = requests.get(sitemap_url, headers=headers, timeout=15)
+        response = requests.get(sitemap_url.strip(), headers=headers, timeout=15)
         if response.status_code != 200:
             return []
 
-        # Remove XML namespace prefixes to guarantee element tags parse perfectly
+        # Strip any XML namespace declarations to ensure findall works cleanly
         xml_text = re.sub(r'\sxmlns="[^"]+"', "", response.text, count=1)
         root = ET.fromstring(xml_text.encode("utf-8"))
 
-        # 1. Check for nested sitemaps (Sitemap Index)
+        # Case A: Nested Sitemap Index (<sitemap> tags found)
         sitemaps = root.findall(".//sitemap/loc")
         if sitemaps:
             for sitemap_node in sitemaps:
-                sub_url = sitemap_node.text.strip()
-                # Recursively extract URLs from the sub-sitemaps
-                sub_urls = extract_urls_from_sitemap_url(sub_url)
-                urls.update(sub_urls)
+                if sitemap_node.text:
+                    sub_url = sitemap_node.text.strip()
+                    # Recursively go deeper into the sub-sitemaps
+                    sub_urls = extract_urls_from_sitemap_url(sub_url)
+                    urls.update(sub_urls)
 
-        # 2. Check for standard page URLs
+        # Case B: Standard URL lists (<url> tags found)
         locs = root.findall(".//url/loc")
         for loc in locs:
             if loc.text:
@@ -57,7 +64,7 @@ def extract_urls_from_sitemap_url(sitemap_url):
 
 
 def scrape_website_1_seo(url):
-    """Crawls a single URL on Website 1 to scrape its live SEO metrics."""
+    """Crawls a target live webpage on Website 1 to gather current SEO tags."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -97,14 +104,14 @@ def scrape_website_1_seo(url):
         return None
 
 
-# --- Streamlit Layout Configuration ---
+# --- Streamlit Layout ---
 st.set_page_config(
-    page_title="SEO Migration Matrix", page_icon="🗺️", layout="wide"
+    page_title="SEO Sitemap Migration Matrix", page_icon="🗺️", layout="wide"
 )
 
 st.title("🗺️ Automated URL Slug-to-Slug SEO Mapper")
 st.write(
-    "Paste the direct sitemap URLs below. The tool will parse all nested pages, extract **only clean slugs**, match them side-by-side, and carry over Website 1's live SEO data."
+    "Enter the exact sitemap XML addresses for both websites. The engine will extract all nested links, pull the slugs, map them, and gather live SEO data."
 )
 
 col1, col2 = st.columns(2)
@@ -119,88 +126,102 @@ with col2:
         "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
     )
 
-if st.button("Extract, Match Slugs & Generate Sheet", type="primary"):
+if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
     if not sitemap_1_input or not sitemap_2_input:
-        st.error("Please enter both sitemap XML addresses.")
+        st.error("Please fill in both sitemap URL inputs.")
     else:
-        with st.spinner("Extracting deep URLs from sitemaps..."):
+        with st.spinner("Step 1: Parsing deep sitemap indices recursively..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
+        # Show exactly how many URLs were uncovered from the sitemaps
         st.info(
-            f"📋 Loaded {len(w1_urls)} total URLs from Website 1 and {len(w2_urls)} total URLs from Website 2."
+            f"📋 Discovered {len(w1_urls)} URLs from Website 1 and {len(w2_urls)} URLs from Website 2."
         )
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
             st.error(
-                "Failed to pull data. Ensure you pasted a valid, working XML sitemap path."
+                "Could not extract any URLs. Please verify that both sitemap inputs are live XML addresses."
             )
         else:
-            # Step 1: Scrape and index Website 1 by its pure slug path
-            w1_data_store = {}
+            # Map Website 1 URLs using their clean path slug as the lookup key
+            w1_slug_to_url = {}
+            for url in w1_urls:
+                slug = get_slug_from_url(url)
+                if slug:
+                    w1_slug_to_url[slug] = url
+
+            # Scrape Website 1 pages for real-time SEO validation
+            w1_seo_data = {}
             progress_bar = st.progress(0)
             status_text = st.empty()
 
-            for i, url in enumerate(w1_urls):
-                slug = get_slug_from_url(url)
+            for i, (slug, url) in enumerate(w1_slug_to_url.items()):
                 status_text.text(
-                    f"Scraping Website 1 Data ({i+1}/{len(w1_urls)}): /{slug}"
+                    f"Scraping Website 1 Metadata ({i+1}/{len(w1_slug_to_url)}): /{slug}"
                 )
+                seo = scrape_website_1_seo(url)
+                if seo:
+                    w1_seo_data[slug] = seo
+                progress_bar.progress((i + 1) / len(w1_slug_to_url))
 
-                seo_info = scrape_website_1_seo(url)
-                if seo_info:
-                    w1_data_store[slug] = seo_info
-                progress_bar.progress((i + 1) / len(w1_urls))
+            status_text.text("Matching slug matrix arrays side-by-side...")
 
-            status_text.text("Aligning slug matrix columns...")
-
-            # Step 2: Loop through Website 2 pages, extract slug, match them up side-by-side
+            # Build matrix rows driven by Website 2's structure
             final_rows = []
             for idx, w2_url in enumerate(w2_urls, start=1):
-                slug = get_slug_from_url(w2_url)
-                display_slug = "/" if slug == "homepage" else f"/{slug}"
+                w2_slug = get_slug_from_url(w2_url)
+                display_w2_slug = "/" if w2_slug == "homepage" else f"/{w2_slug}"
 
-                if slug in w1_data_store:
-                    w1_seo = w1_data_store[slug]
-                    final_rows.append(
-                        {
-                            "#": idx,
-                            "Website 1 Slug (Live)": display_slug,
-                            "Website 2 Slug (Beta)": display_slug,
-                            "Match Status": "MATCHED",
-                            "Meta Title (from W1)": w1_seo["title"],
-                            "Meta Description (from W1)": w1_seo["meta_description"],
-                            "Canonical Tag (from W1)": w1_seo["canonical"],
-                            "Open Graph Tags (from W1)": w1_seo["og_tags"],
-                            "Schema JSON-LD (from W1)": w1_seo["schema_json_ld"],
-                        }
-                    )
+                if w2_slug in w1_slug_to_url:
+                    w1_url = w1_slug_to_url[w2_slug]
+                    display_w1_slug = display_w2_slug
+                    match_status = "MATCHED"
+
+                    # Collect scraped data profile
+                    seo = w1_seo_data.get(w2_slug, None)
+                    meta_title = seo["title"] if seo else ""
+                    meta_desc = seo["meta_description"] if seo else ""
+                    canonical = seo["canonical"] if seo else ""
+                    og_tags = seo["og_tags"] if seo else ""
+                    schema = seo["schema_json_ld"] if seo else ""
                 else:
-                    final_rows.append(
-                        {
-                            "#": idx,
-                            "Website 1 Slug (Live)": "N/A",
-                            "Website 2 Slug (Beta)": display_slug,
-                            "Match Status": "NO MATCH FOUND",
-                            "Meta Title (from W1)": "N/A",
-                            "Meta Description (from W1)": "N/A",
-                            "Canonical Tag (from W1)": "N/A",
-                            "Open Graph Tags (from W1)": "N/A",
-                            "Schema JSON-LD (from W1)": "N/A",
-                        }
-                    )
+                    w1_url = "N/A"
+                    display_w1_slug = "N/A"
+                    match_status = "NO MATCH FOUND"
+                    meta_title = "N/A"
+                    meta_desc = "N/A"
+                    canonical = "N/A"
+                    og_tags = "N/A"
+                    schema = "N/A"
+
+                final_rows.append(
+                    {
+                        "#": idx,
+                        "Website 1 Slug": display_w1_slug,
+                        "Website 2 Slug": display_w2_slug,
+                        "Match Status": match_status,
+                        "Website 1 Raw URL": w1_url,
+                        "Website 2 Raw URL": w2_url,
+                        "Meta Title (W1)": meta_title,
+                        "Meta Description (W1)": meta_desc,
+                        "Canonical Tag (W1)": canonical,
+                        "Open Graph Tags (W1)": og_tags,
+                        "Schema JSON-LD (W1)": schema,
+                    }
+                )
 
             df = pd.DataFrame(final_rows)
             progress_bar.empty()
             status_text.empty()
 
-            st.success("🎉 Migration Mapping Sheet Completed Successfully!")
+            st.success("🎉 Migration Mapping Complete!")
             st.dataframe(df, use_container_width=True)
 
             csv_data = df.to_csv(index=False, encoding="utf-8-sig")
             st.download_button(
-                label="📥 Download Data Mapping CSV",
+                label="📥 Download Structured CSV Matrix",
                 data=csv_data,
-                file_name="seo_migration_matrix.csv",
+                file_name="sitemap_seo_migration_matrix.csv",
                 mime="text/csv",
             )
