@@ -121,7 +121,7 @@ if "match_count" not in st.session_state:
 
 # --- Interface Design Custom Styling Injector ---
 st.set_page_config(
-    page_title="G99 Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
+    page_title="Redesign SEO Migration Suite", page_icon="🔮", layout="wide"
 )
 
 st.markdown(
@@ -177,13 +177,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Header Section with Title, New Subheading, and Brand Attribution
+# Header Section with Title (G99 Removed), Option 2 Subheading, and Brand Attribution
 st.markdown(
-    "<h1 class='dashboard-title'>🔮 G99 Redesign SEO Migration Suite</h1>",
+    "<h1 class='dashboard-title'>🔮 Redesign SEO Migration Suite</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
-    "<div class='dashboard-subheading'>Automated mapping, core metadata harvesting, and structural preservation suite for modern website redesign deployments.</div>",
+    "<div class='dashboard-subheading'>Instantly scrape, map, and export complete live site SEO portfolios into clean RankMath configurations for your beta site.</div>",
     unsafe_allow_html=True,
 )
 st.markdown(
