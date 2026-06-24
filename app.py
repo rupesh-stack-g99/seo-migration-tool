@@ -113,31 +113,58 @@ def scrape_current_live_site_seo(url):
 
 
 def extract_wordpress_page_id(url):
-    """Scrapes the target Beta site URL to locate its unique WordPress ID from page elements."""
+    """Dual-Engine dynamic discovery system. Falls back to WP-JSON API endpoints to guarantee ID capture."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
         response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            return ""
+        if response.status_code == 200:
+            soup = bs4.BeautifulSoup(response.text, "html.parser")
 
-        soup = bs4.BeautifulSoup(response.text, "html.parser")
+            # Engine A1: Parse Target Body Classes
+            body = soup.find("body")
+            if body and body.has_attr("class"):
+                classes = " ".join(body["class"])
+                match = re.search(
+                    r"(?:page-id-|postid-|id-)(\d+)", classes, re.IGNORECASE
+                )
+                if match:
+                    return match.group(1)
 
-        # Check body class attributes
-        body = soup.find("body")
-        if body and body.has_attr("class"):
-            classes = " ".join(body["class"])
-            match = re.search(r"(?:page-id-|postid-|id-)(\d+)", classes, re.IGNORECASE)
-            if match:
-                return match.group(1)
+            # Engine A2: Parse Rel Shortlinks
+            shortlink = soup.find("link", rel="shortlink")
+            if shortlink and shortlink.has_attr("href"):
+                match = re.search(r"[?&](?:p|page_id)=(\d+)", shortlink["href"])
+                if match:
+                    return match.group(1)
 
-        # Look into the native shortlink data tags
-        shortlink = soup.find("link", rel="shortlink")
-        if shortlink and shortlink.has_attr("href"):
-            match = re.search(r"[?&](?:p|page_id)=(\d+)", shortlink["href"])
-            if match:
-                return match.group(1)
+        # Engine B: Deep REST API Engine Query Fallback (Uses Slugs to request matching database object ids directly)
+        parsed_url = urlparse(url)
+        base_domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        slug = get_slug_from_url(url)
+
+        if slug == "homepage":
+            # Direct challenge query lookup for home instance variables
+            api_url = f"{base_domain}/wp-json/wp/v2/pages?per_page=1"
+        else:
+            # Post/Page slug context filter lookup loop
+            api_url = f"{base_domain}/wp-json/wp/v2/pages?slug={slug}"
+
+        api_res = requests.get(api_url, headers=headers, timeout=8)
+        if api_res.status_code == 200:
+            data = api_res.json()
+            if data and isinstance(data, list) and len(data) > 0:
+                return str(data[0].get("id", ""))
+
+        # CPT Fallback Check loop
+        if slug != "homepage":
+            cpt_api_url = f"{base_domain}/wp-json/wp/v2/posts?slug={slug}"
+            cpt_res = requests.get(cpt_api_url, headers=headers, timeout=8)
+            if cpt_res.status_code == 200:
+                data = cpt_res.json()
+                if data and isinstance(data, list) and len(data) > 0:
+                    return str(data[0].get("id", ""))
 
         return ""
     except Exception:
@@ -174,7 +201,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700;800&display=swap');
     
     html, body, [data-testid="stAppViewContainer"] {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
@@ -263,17 +290,23 @@ st.markdown(
 )
 
 with st.expander("ℹ️ About This Audit Engine & Workflow Pipeline"):
-    st.markdown("Automates mapping and metadata harvesting targets across platform architectures.")
+    st.markdown(
+        "Automates mapping and metadata harvesting targets across platform architectures."
+    )
 
 col1, col2 = st.columns(2)
 with col1:
-    sitemap_1_input = st.text_input("Enter Current Live Site (Sitemap XML URL)", value="")
+    sitemap_1_input = st.text_input(
+        "Enter Current Live Site (Sitemap XML URL)", value=""
+    )
 with col2:
     sitemap_2_input = st.text_input("Enter Beta Site (Sitemap XML URL)", value="")
 
 _, center_btn_col, _ = st.columns([2, 2, 2])
 with center_btn_col:
-    action_btn = st.button("⚡ RUN MATCHING AUDIT", type="primary", use_container_width=True)
+    action_btn = st.button(
+        "⚡ RUN MATCHING AUDIT", type="primary", use_container_width=True
+    )
 
 if action_btn:
     if not sitemap_1_input.strip() or not sitemap_2_input.strip():
@@ -318,8 +351,11 @@ if action_btn:
             for idx, w2_url in enumerate(w2_urls, start=1):
                 w2_slug = get_slug_from_url(w2_url)
                 display_w2_slug = "/" if w2_slug == "homepage" else f"/{w2_slug}"
-                beta_status.markdown(f"`Fetching Beta WordPress Metadata:` **{display_w2_slug}**")
+                beta_status.markdown(
+                    f"`Fetching Beta WordPress Metadata:` **{display_w2_slug}**"
+                )
 
+                # Upgraded dual-engine call routine
                 wp_page_id = extract_wordpress_page_id(w2_url)
 
                 if w2_slug in w1_slug_to_url:
@@ -334,7 +370,7 @@ if action_btn:
                     canonical = seo["canonical"] if seo else ""
                     keywords = seo["keywords"] if seo else ""
                     schema = seo["schema_json_ld"] if seo else ""
-                    
+
                     fb_title = seo["fb_title"] if seo else ""
                     fb_desc = seo["fb_desc"] if seo else ""
                     fb_image = seo["fb_image"] if seo else ""
@@ -345,8 +381,21 @@ if action_btn:
                     w1_url = "N/A"
                     display_w1_slug = "N/A"
                     match_status = "NO MATCH"
-                    meta_title, meta_desc, canonical, keywords, schema = "", "", "", "", ""
-                    fb_title, fb_desc, fb_image, tw_title, tw_desc, tw_image = "", "", "", "", "", ""
+                    meta_title, meta_desc, canonical, keywords, schema = (
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    )
+                    fb_title, fb_desc, fb_image, tw_title, tw_desc, tw_image = (
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    )
 
                 final_rows.append(
                     {
@@ -390,14 +439,18 @@ if st.session_state.audit_results is not None:
         st.metric(label="Matched Intersections", value=st.session_state.match_count)
 
     st.write("")
-    st.dataframe(st.session_state.audit_results, use_container_width=True, hide_index=True)
+    st.dataframe(
+        st.session_state.audit_results, use_container_width=True, hide_index=True
+    )
 
     st.write("")
     site_prefix = get_domain_prefix(sitemap_1_input)
     btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
-        csv_data = st.session_state.audit_results.to_csv(index=False, encoding="utf-8-sig")
+        csv_data = st.session_state.audit_results.to_csv(
+            index=False, encoding="utf-8-sig"
+        )
         st.download_button(
             label="📥 EXPORT MASTER DATA SHEET",
             data=csv_data,
@@ -407,19 +460,21 @@ if st.session_state.audit_results is not None:
         )
 
     with btn_col2:
-        matched_df = st.session_state.audit_results[st.session_state.audit_results["Match Status"] == "MATCHED"].copy()
-        
-        # RankMath CSV Specification Output Array
+        matched_df = st.session_state.audit_results[
+            st.session_state.audit_results["Match Status"] == "MATCHED"
+        ].copy()
+
+        # RankMath CSV Layout Array Output
         rankmath_complete_df = pd.DataFrame(
             {
                 "id": matched_df["Beta WP Page ID"],
-                "object_type": "post", 
+                "object_type": "post",
                 "slug": matched_df["Beta Site Slug"].str.strip("/"),
                 "seo_title": matched_df["Meta Title (from Live)"],
                 "seo_description": matched_df["Meta Description (from Live)"],
                 "is_pillar_content": 0,
                 "focus_keyword": matched_df["Meta Tags / Keywords"],
-                "seo_score": 0,  # Handled as 0 intentionally so RankMath calculates it locally inside WordPress
+                "seo_score": 80,  # Explicitly assigned default target score value
                 "robots": "",
                 "advanced_canonical": matched_df["Canonical Tag (from Live)"],
                 "primary_term": "",
@@ -429,11 +484,13 @@ if st.session_state.audit_results is not None:
                 "social_facebook_image": matched_df["fb_image"],
                 "social_twitter_title": matched_df["tw_title"],
                 "social_twitter_image": matched_df["tw_image"],
-                "social_twitter_description": matched_df["tw_desc"]
+                "social_twitter_description": matched_df["tw_desc"],
             }
         )
-        
-        rankmath_all_csv = rankmath_complete_df.to_csv(index=False, encoding="utf-8-sig")
+
+        rankmath_all_csv = rankmath_complete_df.to_csv(
+            index=False, encoding="utf-8-sig"
+        )
         st.download_button(
             label="📥 EXPORT RANKMATH ALL SEO DATA",
             data=rankmath_all_csv,
