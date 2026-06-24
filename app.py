@@ -24,10 +24,7 @@ def get_slug_from_url(url):
 
 
 def extract_urls_from_sitemap_url(sitemap_url):
-    """Deep parses sitemap XML data recursively.
-
-    Follows nested <sitemap> tags down to individual page <url> tags.
-    """
+    """Deep parses sitemap XML data recursively to handle nested WordPress setups."""
     urls = set()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -38,11 +35,9 @@ def extract_urls_from_sitemap_url(sitemap_url):
         if response.status_code != 200:
             return []
 
-        # Strip any XML namespace declarations to ensure findall works cleanly
         xml_text = re.sub(r'\sxmlns="[^"]+"', "", response.text, count=1)
         root = ET.fromstring(xml_text.encode("utf-8"))
 
-        # Case A: Nested Sitemap Index (<sitemap> tags found)
         sitemaps = root.findall(".//sitemap/loc")
         if sitemaps:
             for sitemap_node in sitemaps:
@@ -51,7 +46,6 @@ def extract_urls_from_sitemap_url(sitemap_url):
                     sub_urls = extract_urls_from_sitemap_url(sub_url)
                     urls.update(sub_urls)
 
-        # Case B: Standard URL lists (<url> tags found)
         locs = root.findall(".//url/loc")
         for loc in locs:
             if loc.text:
@@ -103,7 +97,7 @@ def scrape_current_live_site_seo(url):
         return None
 
 
-# --- Initialize Session States ---
+# --- Session State Handling ---
 if "audit_results" not in st.session_state:
     st.session_state.audit_results = None
 if "w1_count" not in st.session_state:
@@ -113,70 +107,100 @@ if "w2_count" not in st.session_state:
 if "match_count" not in st.session_state:
     st.session_state.match_count = 0
 
-# --- Streamlit Layout ---
+# --- Advanced Dashboard UI Theme Styling ---
 st.set_page_config(
-    page_title="SEO Sitemap Migration Matrix", page_icon="🗺️", layout="wide"
+    page_title="Enterprise SEO Migration Control Suite",
+    page_icon="⚡",
+    layout="wide",
 )
 
-st.title("🗺️ Automated URL Slug-to-Slug SEO Mapper")
-st.write(
-    "Enter the exact sitemap XML addresses below. The engine will extract all nested links, pull the slugs, map them, and gather Current Live Site SEO data."
+st.markdown(
+    """
+    <style>
+    .main .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    h1 { color: #00FFCC !important; font-weight: 800 !important; letter-spacing: -1px; }
+    .stButton>button {
+        background-color: #00FFCC !important; color: #0E1117 !important;
+        font-weight: 700 !important; border-radius: 8px !important;
+        border: none !important; padding: 0.6rem 2rem !important;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,255,204,0.4); }
+    div[data-testid="stMetricValue"] { color: #00FFCC !important; font-family: monospace; font-size: 2.2rem; }
+    .status-card {
+        background: #1E2633; padding: 20px; border-radius: 12px;
+        border-left: 5px solid #00FFCC; margin-bottom: 20px;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
 )
 
-# Render input form fields
-col1, col2 = st.columns(2)
-with col1:
-    sitemap_1_input = st.text_input(
-        "Current Live Site Sitemap XML URL",
-        "https://youthfulmedicine.com/sitemap_index.xml",
-    )
-with col2:
-    sitemap_2_input = st.text_input(
-        "Beta Site Sitemap XML URL",
-        "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
-    )
+# Header Section
+st.title("⚡ Enterprise SEO Migration Suite")
+st.markdown(
+    "Automated deep mapping matrix connecting structural slug configurations with historical metadata alignments."
+)
 
-# Primary audit trigger execution
-if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
+# Input Panel
+with st.container():
+    st.markdown(
+        "<div class='status-card'><h4>Config Target Entry Endpoints</h4></div>",
+        unsafe_allow_html=True,
+    )
+    col1, col2 = st.columns(2)
+    with col1:
+        sitemap_1_input = st.text_input(
+            "Current Live Site Sitemap XML URL",
+            "https://youthfulmedicine.com/sitemap_index.xml",
+        )
+    with col2:
+        sitemap_2_input = st.text_input(
+            "Beta Site Sitemap XML URL",
+            "https://youthfulmedicine.gogroth.com/sitemap_index.xml",
+        )
+
+    action_btn = st.button("Run Automated Alignment Audit", type="primary")
+
+# Execution Engine
+if action_btn:
     if not sitemap_1_input or not sitemap_2_input:
-        st.error("Please fill in both sitemap URL inputs.")
+        st.error("Missing targeting parameters. Provide input to proceed.")
     else:
-        with st.spinner("Step 1: Parsing deep sitemap indices recursively..."):
+        with st.spinner("Processing deep target mapping indices recursively..."):
             w1_urls = extract_urls_from_sitemap_url(sitemap_1_input.strip())
             w2_urls = extract_urls_from_sitemap_url(sitemap_2_input.strip())
 
         if len(w1_urls) == 0 or len(w2_urls) == 0:
             st.error(
-                "Could not extract any URLs. Please verify that both sitemap inputs are live XML addresses."
+                "Zero endpoint entities resolved. Verify sitemap configurations."
             )
         else:
             st.session_state.w1_count = len(w1_urls)
             st.session_state.w2_count = len(w2_urls)
 
-            # Map Current Live Site URLs using their clean path slug
             w1_slug_to_url = {}
             for url in w1_urls:
                 slug = get_slug_from_url(url)
                 if slug:
                     w1_slug_to_url[slug] = url
 
-            # Scrape Current Live Site pages
             w1_seo_data = {}
             progress_bar = st.progress(0)
             status_text = st.empty()
 
             for i, (slug, url) in enumerate(w1_slug_to_url.items()):
-                status_text.text(
-                    f"Scraping Current Live Site Metadata ({i+1}/{len(w1_slug_to_url)}): /{slug}"
+                status_text.markdown(
+                    f"`Scraping Current Live Site:` **/{slug}**"
                 )
                 seo = scrape_current_live_site_seo(url)
                 if seo:
                     w1_seo_data[slug] = seo
                 progress_bar.progress((i + 1) / len(w1_slug_to_url))
 
-            status_text.text("Matching slug matrix arrays side-by-side...")
+            progress_bar.empty()
+            status_text.empty()
 
-            # Build matrix rows driven by Beta Site's structure
             final_rows = []
             matched_counter = 0
 
@@ -199,7 +223,7 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
                 else:
                     w1_url = "N/A"
                     display_w1_slug = "N/A"
-                    match_status = "NO MATCH FOUND"
+                    match_status = "NO MATCH"
                     meta_title = "N/A"
                     meta_desc = "N/A"
                     canonical = "N/A"
@@ -224,49 +248,48 @@ if st.button("Extract Sitemaps, Match Slugs & Generate", type="primary"):
 
             st.session_state.match_count = matched_counter
             st.session_state.audit_results = pd.DataFrame(final_rows)
+            st.success("🎉 Alignment Matrix successfully compiled!")
 
-            progress_bar.empty()
-            status_text.empty()
-            st.success("🎉 Migration Mapping Complete!")
-
-# --- Render Results Section ---
+# Data Display Workspace
 if st.session_state.audit_results is not None:
     st.write("---")
-    st.subheader("📊 Audit Summary Counters")
 
-    # Display clean counter layout blocks
+    # Real-Time Dashboard Analytics Cards
     m1, m2, m3 = st.columns(3)
-    m1.metric(
-        label="Total Current Live Site URLs Found",
-        value=st.session_state.w1_count,
-    )
-    m2.metric(
-        label="Total Beta Site URLs Found", value=st.session_state.w2_count
-    )
-    m3.metric(
-        label="Successfully Matched Slugs", value=st.session_state.match_count
+    with m1:
+        st.metric(
+            label="Live Site URLs Found", value=st.session_state.w1_count
+        )
+    with m2:
+        st.metric(label="Beta Site URLs Found", value=st.session_state.w2_count)
+    with m3:
+        st.metric(label="Matched Slugs", value=st.session_state.match_count)
+
+    st.write("")
+
+    # High-Performance Data Matrix Presentation Panel
+    st.dataframe(
+        st.session_state.audit_results,
+        use_container_width=True,
+        hide_index=True,
     )
 
-    # Render persistent DataFrame display window
-    st.dataframe(st.session_state.audit_results, use_container_width=True)
+    st.write("")
 
-    # Persistent download action component
-    csv_data = st.session_state.audit_results.to_csv(
-        index=False, encoding="utf-8-sig"
-    )
-
-    col_dl, col_reset = st.columns([1, 4])
-    with col_dl:
+    # Persistent Global Controller Panel
+    ctrl_col1, ctrl_col2 = st.columns([1, 4])
+    with ctrl_col1:
+        csv_data = st.session_state.audit_results.to_csv(
+            index=False, encoding="utf-8-sig"
+        )
         st.download_button(
-            label="📥 Download Structured CSV Matrix",
+            label="📥 Export Clean CSV",
             data=csv_data,
             file_name="seo_migration_matrix.csv",
             mime="text/csv",
         )
-
-    # Rerun / Reset option component layout
-    with col_reset:
-        if st.button("🔄 Rerun New Audit / Reset Everything"):
+    with ctrl_col2:
+        if st.button("🔄 Reset Suite / Rerun New Audit"):
             st.session_state.audit_results = None
             st.session_state.w1_count = 0
             st.session_state.w2_count = 0
